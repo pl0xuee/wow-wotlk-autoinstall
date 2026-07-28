@@ -1,3 +1,5 @@
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using System.Collections.ObjectModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -329,8 +331,30 @@ public partial class SettingsViewModel : ViewModelBase
         );
         if (result.Outcome == OperationOutcome.Succeeded)
         {
-            UpdateStatus = $"{pending.LatestTag} is installed. Close the app and open it again to run it.";
-            _log.Append($"App updated to {pending.LatestTag}; restart to use it.");
+            _log.Append($"App updated to {pending.LatestTag}; restarting into the new version.");
+            UpdateStatus = $"{pending.LatestTag} is installed. Restarting…";
+
+            // The running process keeps the old image mounted, so the new version can only run
+            // as a new process. Start it first and shut down only if it actually started —
+            // exiting on a failed spawn would close the app with nothing to replace it.
+            if (AppUpdateService.InstalledAppImagePath is { } appImage
+                && _appUpdate.TryRelaunch(appImage))
+            {
+                // Deferred so this handler returns and the status line above is painted; the
+                // new window takes a moment to appear and a frozen one reads as a crash.
+                DispatcherTimer.RunOnce(
+                    () =>
+                        (Application.Current?.ApplicationLifetime
+                            as IClassicDesktopStyleApplicationLifetime)?.Shutdown(),
+                    TimeSpan.FromMilliseconds(600)
+                );
+                return;
+            }
+
+            UpdateStatus =
+                $"{pending.LatestTag} is installed, but this copy could not restart itself. "
+                    + "Close the app and open it again to run the new version.";
+            _log.Append("Could not relaunch automatically; restart the app by hand.");
             return;
         }
         CanDownloadUpdate = true;

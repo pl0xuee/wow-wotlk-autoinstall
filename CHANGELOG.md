@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.2
+
+- **Updating now restarts the app into the new version.** It used to swap the AppImage and
+  tell you to close and reopen it. It starts the replacement first and shuts down only once
+  that has actually started, so a failed launch leaves the running app alone rather than
+  closing it with nothing to replace it. The new process gets a clean environment — `APPIMAGE`,
+  `APPDIR` and `LD_LIBRARY_PATH` all describe the image the old process has mounted, and that
+  mount disappears the moment it exits.
+
 ## v0.1.1
 
 ### One-click install

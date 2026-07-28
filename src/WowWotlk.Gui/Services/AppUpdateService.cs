@@ -27,6 +27,53 @@ public class AppUpdateService(IHttpClientFactory hcf)
     /// <summary>The AppImage file we were launched from; null when not running as an AppImage.</summary>
     public static string? InstalledAppImagePath => Environment.GetEnvironmentVariable("APPIMAGE");
 
+    /// <summary>
+    /// Environment an AppImage sets for the process it runs, all of it describing the image
+    /// currently mounted. The replacement mounts itself and sets its own, so these have to be
+    /// cleared — inherited, they point the new instance at the old mount, which is unmounted
+    /// the moment this process exits.
+    /// </summary>
+    private static readonly string[] AppImageEnvironment =
+        ["APPIMAGE", "APPDIR", "ARGV0", "OWD", "LD_LIBRARY_PATH", "LD_PRELOAD", "PYTHONHOME"];
+
+    /// <summary>
+    /// Starts the AppImage at <paramref name="path"/> as an independent process and returns
+    /// whether it started.
+    ///
+    /// Detached with setsid so it survives this process exiting — without a new session it is
+    /// a child of the dying app and dies with it. The caller shuts down only on true: exiting
+    /// after a failed spawn would leave the user with no window and no obvious way back.
+    /// </summary>
+    public bool TryRelaunch(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "/bin/sh",
+                UseShellExecute = false,
+            };
+            psi.ArgumentList.Add("-c");
+            // exec so the shell does not linger; "$0" keeps a path with spaces intact.
+            psi.ArgumentList.Add("exec setsid \"$0\" >/dev/null 2>&1 &");
+            psi.ArgumentList.Add(path);
+            foreach (var name in AppImageEnvironment)
+            {
+                psi.Environment.Remove(name);
+            }
+            using var started = System.Diagnostics.Process.Start(psi);
+            return started is not null;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
     public async Task<AppUpdateCheck> CheckAsync(CancellationToken ct = default)
     {
         var json = await _httpClient.GetStringAsync(

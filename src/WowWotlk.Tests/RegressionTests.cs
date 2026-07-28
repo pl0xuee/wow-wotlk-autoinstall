@@ -4,6 +4,7 @@ using WowWotlk.Gui.Services;
 using WowWotlk.Gui.Services.Addons;
 using WowWotlk.Gui.Services.Client;
 using WowWotlk.Gui.Services.Steam;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace WowWotlk.Tests;
@@ -551,5 +552,119 @@ public class OneClickInstallTests
         return settings.SelectedAddonIds is { } ids
             ? entries.Where(e => ids.Contains(e.Id, StringComparer.Ordinal)).ToList()
             : entries.Where(e => e.Recommended).ToList();
+    }
+}
+
+public class SelfUpdateRestartTests
+{
+    private static AppUpdateService NewService() =>
+        new(new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+            .AddHttpClient()
+            .BuildServiceProvider()
+            .GetRequiredService<System.Net.Http.IHttpClientFactory>());
+
+    [Fact]
+    public void Relaunch_refuses_a_path_that_is_not_there()
+    {
+        // The caller shuts the app down only when this returns true. Returning true for a
+        // missing file would close the window with nothing to replace it.
+        Assert.False(NewService().TryRelaunch("/nonexistent/WowWotlkAutoinstall.AppImage"));
+    }
+
+    [Fact]
+    public void Relaunch_refuses_an_empty_path()
+    {
+        Assert.False(NewService().TryRelaunch(""));
+    }
+
+    [Fact]
+    public void Relaunch_starts_the_target_and_survives_this_process()
+    {
+        // setsid puts the replacement in its own session, so it is not a child of the dying
+        // app. Without that it would be killed along with the process that started it.
+        using var temp = new TempDir();
+        var marker = temp.Join("started.txt");
+        var script = temp.Join("fake.AppImage");
+        File.WriteAllText(script, $"#!/bin/sh\nsleep 0.2\necho \"$$\" > \"{marker}\"\n");
+        File.SetUnixFileMode(
+            script,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+        );
+
+        Assert.True(NewService().TryRelaunch(script));
+
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (!File.Exists(marker) && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(50);
+        }
+        Assert.True(File.Exists(marker), "the relaunched process never ran");
+    }
+
+    [Fact]
+    public void Relaunch_does_not_hand_on_the_old_images_environment()
+    {
+        // APPIMAGE, APPDIR and LD_LIBRARY_PATH all describe the image this process has
+        // mounted, and that mount disappears when it exits. Inherited, they point the new
+        // instance at a mount that is about to vanish.
+        using var temp = new TempDir();
+        var dump = temp.Join("env.txt");
+        var script = temp.Join("fake.AppImage");
+        File.WriteAllText(
+            script,
+            $"#!/bin/sh\n{{ echo \"APPIMAGE=[$APPIMAGE]\"; echo \"APPDIR=[$APPDIR]\"; "
+                + $"echo \"LD_LIBRARY_PATH=[$LD_LIBRARY_PATH]\"; }} > \"{dump}\"\n"
+        );
+        File.SetUnixFileMode(
+            script,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+        );
+        Environment.SetEnvironmentVariable("APPIMAGE", "/old/mount/App.AppImage");
+        Environment.SetEnvironmentVariable("APPDIR", "/tmp/.mount_old");
+        Environment.SetEnvironmentVariable("LD_LIBRARY_PATH", "/tmp/.mount_old/usr/lib");
+        try
+        {
+            Assert.True(NewService().TryRelaunch(script));
+
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (!File.Exists(dump) && DateTime.UtcNow < deadline)
+            {
+                Thread.Sleep(50);
+            }
+            var text = File.ReadAllText(dump);
+            Assert.Contains("APPIMAGE=[]", text);
+            Assert.Contains("APPDIR=[]", text);
+            Assert.Contains("LD_LIBRARY_PATH=[]", text);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("APPIMAGE", null);
+            Environment.SetEnvironmentVariable("APPDIR", null);
+            Environment.SetEnvironmentVariable("LD_LIBRARY_PATH", null);
+        }
+    }
+
+    [Fact]
+    public void Relaunch_handles_a_path_with_spaces()
+    {
+        using var temp = new TempDir();
+        var marker = temp.Join("ran.txt");
+        var dir = temp.Join("a folder with spaces");
+        Directory.CreateDirectory(dir);
+        var script = Path.Join(dir, "My App.AppImage");
+        File.WriteAllText(script, $"#!/bin/sh\ntouch \"{marker}\"\n");
+        File.SetUnixFileMode(
+            script,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+        );
+
+        Assert.True(NewService().TryRelaunch(script));
+
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (!File.Exists(marker) && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(50);
+        }
+        Assert.True(File.Exists(marker), "a path containing spaces was not launched");
     }
 }
