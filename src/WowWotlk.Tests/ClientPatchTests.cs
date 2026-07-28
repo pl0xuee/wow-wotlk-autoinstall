@@ -114,3 +114,46 @@ public class InstalledPatchStoreTests
         Assert.Single(store.All);
     }
 }
+
+public class PatchRowTests
+{
+    private static ClientPatch Catalog() =>
+        new("wdm-maps", "Dungeon Maps", "maps", "o/r", "patch-{locale}-M.MPQ", "https://x", true);
+
+    private static InstalledPatch Record() =>
+        new("wdm-maps", "Dungeon Maps", "enUS", "Data/enUS/patch-enUS-M.MPQ", "2.4.5", DateTimeOffset.UnixEpoch);
+
+    [Fact]
+    public void Not_installed_offers_install_and_no_remove()
+    {
+        var row = new WowWotlk.Gui.ViewModels.PatchRow(Catalog(), null, FileOnDisk: false);
+
+        Assert.Equal("Install", row.ActionText);
+        Assert.False(row.CanRemove);
+        Assert.False(row.IsInstalled);
+        Assert.False(row.IsMissing);
+    }
+
+    [Fact]
+    public void Installed_and_present_offers_reinstall()
+    {
+        var row = new WowWotlk.Gui.ViewModels.PatchRow(Catalog(), Record(), FileOnDisk: true);
+
+        Assert.Equal("Reinstall", row.ActionText);
+        Assert.True(row.IsInstalled);
+        Assert.True(row.CanRemove);
+    }
+
+    [Fact]
+    public void Recorded_but_gone_from_disk_offers_restore_rather_than_claiming_installed()
+    {
+        // Happens whenever a client is reinstalled or the file is deleted by hand. Showing it
+        // as installed would leave the user with no control that puts it back.
+        var row = new WowWotlk.Gui.ViewModels.PatchRow(Catalog(), Record(), FileOnDisk: false);
+
+        Assert.True(row.IsMissing);
+        Assert.False(row.IsInstalled);
+        Assert.Equal("Restore", row.ActionText);
+        Assert.True(row.CanRemove);
+    }
+}

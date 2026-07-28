@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.7
+
+- **Game patches on the Addons tab.** A GAME PATCHES section with Install, Reinstall and Remove
+  per patch, so a patch can be added to a client that is already installed without re-running
+  the whole install.
+- A patch recorded as installed whose file is not actually in the client is shown as missing and
+  offers **Restore**, rather than claiming to be installed. The two disagree whenever a client is
+  reinstalled or a file is deleted by hand, and calling that "installed" leaves no way back.
+
 ## v0.1.6
 
 - **Game patches.** A new GAME PATCHES section on the Install page, installed as part of the

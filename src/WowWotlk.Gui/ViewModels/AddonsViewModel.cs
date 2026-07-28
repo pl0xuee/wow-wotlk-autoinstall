@@ -7,6 +7,7 @@ using WowWotlk.Gui.Models;
 using WowWotlk.Gui.Services;
 using WowWotlk.Gui.Services.Addons;
 using WowWotlk.Gui.Services.Client;
+using WowWotlk.Gui.Services.Patches;
 
 namespace WowWotlk.Gui.ViewModels;
 
@@ -59,10 +60,41 @@ public sealed record InstalledRow(AddonFolder Folder, InstalledAddon? Record)
     public bool CanRemove => Record is not null;
 }
 
+/// <summary>
+/// One game patch as the page shows it: the catalog entry, whatever this app recorded about
+/// it, and whether its file is actually on disk right now — which is not the same question,
+/// because a patch can be deleted by hand or lost when a client is reinstalled.
+/// </summary>
+public sealed record PatchRow(ClientPatch Patch, InstalledPatch? Installed, bool FileOnDisk)
+{
+    public string Name => Patch.Name;
+    public string Description => Patch.Description;
+    public string? Homepage => Patch.Homepage;
+
+    public string VersionText => Installed?.Version ?? "—";
+
+    public string LocationText =>
+        Installed is null ? "not installed" : Installed.RelativePath;
+
+    /// <summary>
+    /// Recorded but missing from disk is worth saying plainly rather than showing as installed:
+    /// it means the file was removed outside the app, and Install is the way back.
+    /// </summary>
+    public bool IsMissing => Installed is not null && !FileOnDisk;
+
+    public bool IsInstalled => Installed is not null && FileOnDisk;
+
+    public string ActionText => IsMissing ? "Restore" : IsInstalled ? "Reinstall" : "Install";
+
+    /// <summary>Only a patch this app installed can be removed — only it knows which file to delete.</summary>
+    public bool CanRemove => Installed is not null;
+}
+
 public partial class AddonsViewModel : ViewModelBase
 {
     public ObservableCollection<CatalogRow> Catalog { get; } = [];
     public ObservableCollection<InstalledRow> Installed { get; } = [];
+    public ObservableCollection<PatchRow> Patches { get; } = [];
 
     [ObservableProperty]
     public partial string Filter { get; set; } = "";
@@ -93,6 +125,8 @@ public partial class AddonsViewModel : ViewModelBase
         AddonCatalog catalog,
         InstalledAddonStore store,
         AddonScanner scanner,
+        PatchCatalog patchCatalog,
+        InstalledPatchStore patchStore,
         OperationRunner runner,
         LogService log
     )
@@ -101,6 +135,8 @@ public partial class AddonsViewModel : ViewModelBase
         _catalog = catalog;
         _store = store;
         _scanner = scanner;
+        _patchCatalog = patchCatalog;
+        _patchStore = patchStore;
         _runner = runner;
         _log = log;
         runner.Started += _ => Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(CanAct)));
@@ -134,8 +170,10 @@ public partial class AddonsViewModel : ViewModelBase
             : ClientLocator.Find(AppSettings.ExpandHome(settings.InstallDir));
 
         _store.Load();
+        _patchStore.Load();
         RebuildCatalog();
         RebuildInstalled();
+        RebuildPatches();
         // Deliberately does not clear StatusMessage. Every command ends by calling Refresh, so
         // clearing here wiped the "done"/"failed" line one statement after it was written and
         // the status band never displayed anything at all.
@@ -235,6 +273,56 @@ public partial class AddonsViewModel : ViewModelBase
         }
     }
 
+    [RelayCommand]
+    private Task InstallPatchAsync(PatchRow? row) =>
+        row is null || ClientRoot is not { } root
+            ? Task.CompletedTask
+            : RunAsync(
+                $"Install {row.Name}",
+                (services, ct) =>
+                    services
+                        .GetRequiredService<ClientPatchService>()
+                        .InstallAsync(root, row.Patch, null, ct)
+            );
+
+    [RelayCommand]
+    private Task RemovePatchAsync(PatchRow? row) =>
+        row?.Installed is null || ClientRoot is not { } root
+            ? Task.CompletedTask
+            : RunAsync(
+                $"Remove {row.Name}",
+                (services, _) =>
+                    services.GetRequiredService<ClientPatchService>().RemoveAsync(root, row.Installed)
+            );
+
+    [RelayCommand]
+    private void OpenPatchHomepage(PatchRow? row)
+    {
+        if (row?.Homepage is { } url && !SafeUrl.TryOpenInBrowser(url))
+        {
+            _log.Append($"Could not open {url}");
+        }
+    }
+
+    /// <summary>
+    /// Pairs each catalog patch with its record and with whether the file is really there.
+    /// Disk is checked separately from the record because the two disagree whenever a client is
+    /// reinstalled or a file is deleted by hand, and showing "installed" for a missing file
+    /// leaves the user with no way to get it back.
+    /// </summary>
+    private void RebuildPatches()
+    {
+        Patches.Clear();
+        foreach (var patch in _patchCatalog.Entries)
+        {
+            var record = _patchStore.ById(patch.Id);
+            var present = record is not null
+                && ClientRoot is { } root
+                && ClientPatchService.IsPresent(root, record);
+            Patches.Add(new PatchRow(patch, record, present));
+        }
+    }
+
     /// <summary>
     /// Every command on this page mutates the same Interface/AddOns tree, so they all go
     /// through the one runner that serialises operations — and every one of them ends by
@@ -295,6 +383,8 @@ public partial class AddonsViewModel : ViewModelBase
     private readonly AddonCatalog _catalog;
     private readonly InstalledAddonStore _store;
     private readonly AddonScanner _scanner;
+    private readonly PatchCatalog _patchCatalog;
+    private readonly InstalledPatchStore _patchStore;
     private readonly OperationRunner _runner;
     private readonly LogService _log;
 }

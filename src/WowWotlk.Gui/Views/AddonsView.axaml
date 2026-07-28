@@ -138,6 +138,65 @@
                 </DataGrid>
             </StackPanel>
 
+            <!-- Game patches. A separate list from the catalog above because they are a
+                 different kind of thing: MPQ game data rather than interface code, installed
+                 into Data/<locale> rather than Interface/AddOns. -->
+            <StackPanel Spacing="10">
+                <TextBlock Classes="section" Text="GAME PATCHES"/>
+                <ItemsControl ItemsSource="{Binding Patches}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PatchRow">
+                            <Border Classes="card" Margin="0,0,0,8">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                                    <StackPanel Grid.Column="0" Spacing="4">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Classes="installed-mark" Text="✦"
+                                                       VerticalAlignment="Center"
+                                                       IsVisible="{Binding IsInstalled}"
+                                                       ToolTip.Tip="Installed"/>
+                                            <TextBlock Text="!" VerticalAlignment="Center"
+                                                       FontSize="13"
+                                                       Foreground="{StaticResource QualityLegendary}"
+                                                       IsVisible="{Binding IsMissing}"
+                                                       ToolTip.Tip="Recorded as installed, but the file is not in the client"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Description}" Classes="muted"
+                                                   FontSize="12" TextWrapping="Wrap"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="14">
+                                            <TextBlock Classes="data muted" Text="{Binding VersionText}"/>
+                                            <TextBlock Classes="data muted" Text="{Binding LocationText}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                                VerticalAlignment="Center">
+                                        <Button Classes="ghost" Padding="12,4" FontSize="12"
+                                                Content="{Binding ActionText}"
+                                                Command="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).InstallPatchCommand}"
+                                                CommandParameter="{Binding}"
+                                                IsEnabled="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).CanAct}"/>
+                                        <Button Classes="ghost" Padding="12,4" FontSize="12" Content="Remove"
+                                                IsVisible="{Binding CanRemove}"
+                                                Command="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).RemovePatchCommand}"
+                                                CommandParameter="{Binding}"
+                                                IsEnabled="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).CanAct}"/>
+                                        <Button Classes="ghost" Padding="8,4" FontSize="12" Content="↗"
+                                                ToolTip.Tip="Open the patch's page"
+                                                IsVisible="{Binding Homepage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                Command="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).OpenPatchHomepageCommand}"
+                                                CommandParameter="{Binding}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                           Text="Installed into the client's Data folder for its language, where the game engine loads them at startup. A file already using the same name is kept alongside rather than overwritten, and put back if the patch is removed."/>
+            </StackPanel>
+
             <!-- Anything not in the catalog -->
             <StackPanel Spacing="10">
                 <TextBlock Classes="section" Text="INSTALL SOMETHING ELSE"/>
