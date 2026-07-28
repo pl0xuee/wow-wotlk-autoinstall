@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.1.8
+
+- **The chosen resolution now actually reaches the game.** It was written into `WTF/Config.wtf`
+  correctly but the client discarded it on the first launch: with no `hwDetect` directive in the
+  file the client treats it as `1` and runs its hardware detection, which resets the whole video
+  block — resolution included — before it ever sets a mode. An install told to use 3440x1440
+  opened at 1024x768. Writing `hwDetect "0"` alongside the resolution is what makes it stick.
+- **A client nobody has played also gets the game's Ultra graphics preset.** Suppressing that
+  detection means suppressing what would otherwise have chosen the quality settings, so leaving
+  them out would trade a first launch at the wrong resolution for one at the client's built-in
+  defaults. The values are the client's own — `GraphicsQualityLevels.lua` in its `Interface` MPQ
+  defines six levels and level 5 is the one labelled `--ULTRA mode`.
+- **An install someone has already played keeps its graphics settings.** The client writes
+  `hwDetect "0"` itself once it has run, which is the one durable record that a config is the
+  user's own work rather than ours to furnish. Reinstalling still fixes the resolution.
+
 ## v0.1.7
 
 - **Game patches on the Addons tab.** A GAME PATCHES section with Install, Reinstall and Remove

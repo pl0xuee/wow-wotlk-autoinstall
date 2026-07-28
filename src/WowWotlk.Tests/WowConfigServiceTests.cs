@@ -38,7 +38,7 @@ public class WowConfigServiceTests
 
         var updated = WowConfigService.SetValues(
             existing,
-            WowConfigService.Values(Fullscreen(1920, 1080))
+            WowConfigService.Values(Fullscreen(1920, 1080), hasRunBefore: false)
         );
 
         Assert.Contains("SET locale \"enUS\"", updated);
@@ -57,7 +57,7 @@ public class WowConfigServiceTests
 
         var updated = WowConfigService.SetValues(
             existing,
-            WowConfigService.Values(Fullscreen(1920, 1080))
+            WowConfigService.Values(Fullscreen(1920, 1080), hasRunBefore: false)
         );
 
         Assert.DoesNotContain("800x600", updated);
@@ -81,11 +81,75 @@ public class WowConfigServiceTests
     {
         // Without gxMaximize a windowed client at the desktop's own resolution opens with its
         // title bar off-screen, where it cannot be dragged back.
-        var values = WowConfigService.Values(new DisplaySettings(new DisplayMode(1920, 1080), true));
+        var values = WowConfigService.Values(
+            new DisplaySettings(new DisplayMode(1920, 1080), true),
+            hasRunBefore: false
+        );
 
         Assert.Equal("1", values["gxWindow"]);
         Assert.Equal("1", values["gxMaximize"]);
     }
+
+    [Fact]
+    public void Suppresses_the_detection_that_would_otherwise_discard_the_resolution()
+    {
+        // The bug this exists for: with no hwDetect directive the client treats it as 1 and its
+        // first-launch hardware detection resets the whole video block before setting a mode, so
+        // an install told to use 3440x1440 opened at 1024x768 (gx.log: "hwDetect = 1" then
+        // "Format 1024 x 768"). The resolution was read and thrown away.
+        using var temp = new TempDir();
+
+        var path = NewService().Apply(temp.Path, Fullscreen(3440, 1440));
+
+        var text = File.ReadAllText(path);
+        Assert.Contains("SET hwDetect \"0\"", text);
+        Assert.Contains("SET gxResolution \"3440x1440\"", text);
+    }
+
+    [Fact]
+    public void Furnishes_the_clients_own_ultra_preset_when_nobody_has_played_yet()
+    {
+        // Suppressing detection means we own the graphics settings, so a first launch would
+        // otherwise land on the client's built-in defaults. These are GraphicsQualityLevels.lua
+        // level 5, the one the client's own author labelled ULTRA.
+        using var temp = new TempDir();
+
+        var text = File.ReadAllText(NewService().Apply(temp.Path, Fullscreen(1920, 1080)));
+
+        Assert.Contains("SET farclip \"1277\"", text);
+        Assert.Contains("SET extShadowQuality \"5\"", text);
+        Assert.Contains("SET environmentDetail \"1.5\"", text);
+        Assert.Contains("SET componentTextureLevel \"9\"", text);
+        Assert.Contains("SET projectedTextures \"1\"", text);
+    }
+
+    [Fact]
+    public void Leaves_the_graphics_settings_of_an_install_someone_has_played()
+    {
+        // hwDetect "0" in the file is the client's own record that it has completed a launch, so
+        // the quality settings there are the user's. Reinstalling over them must still fix the
+        // resolution they just picked without overwriting the rest with a preset.
+        using var temp = new TempDir();
+        temp.Write(
+            "WTF/Config.wtf",
+            "SET hwDetect \"0\"\nSET farclip \"477\"\nSET gxResolution \"1280x720\"\n"
+        );
+
+        var text = File.ReadAllText(NewService().Apply(temp.Path, Fullscreen(2560, 1440)));
+
+        Assert.Contains("SET farclip \"477\"", text);
+        Assert.DoesNotContain("1277", text);
+        Assert.Contains("SET gxResolution \"2560x1440\"", text);
+        Assert.Contains("SET hwDetect \"0\"", text);
+    }
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("SET gxResolution \"800x600\"\n", false)]
+    [InlineData("SET hwDetect \"1\"\n", false)]
+    [InlineData("SET hwDetect \"0\"\n", true)]
+    public void Reads_whether_the_client_has_completed_a_launch(string existing, bool expected) =>
+        Assert.Equal(expected, WowConfigService.HasRunBefore(existing));
 
     [Fact]
     public void Reads_back_what_the_client_is_set_to()

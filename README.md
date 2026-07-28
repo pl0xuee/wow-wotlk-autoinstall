@@ -15,7 +15,9 @@ does the whole thing — client, realmlist, addons, Steam shortcut:
   Already have the zip, or an unpacked client? Point at either instead and skip the download.
 - **The display** — pick from the resolutions your monitors actually report, fullscreen or
   windowed, written into `WTF/Config.wtf` so the first launch is the right size instead of
-  800x600.
+  800x600. Setting it means suppressing the client's first-launch hardware detection, which
+  would otherwise discard the choice, so a client nobody has played also gets the game's own
+  Ultra graphics preset. An install you have already played keeps its own settings.
 - **The realm** — writes `set realmlist <your address>` into every `realmlist.wtf` the client has,
   not just one, and clears the client `Cache` folder so the new realm actually takes effect.
 - **Addons** — a curated catalog of 3.3.5a addons with one-click install and update, plus

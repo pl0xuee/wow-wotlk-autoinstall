@@ -18,6 +18,12 @@ public sealed record DisplaySettings(DisplayMode Resolution, bool Windowed);
 /// Every directive the file already has is preserved. Config.wtf accumulates everything the
 /// user has ever changed in the options menu, so rewriting it wholesale to set two values
 /// would silently discard their sound, camera and combat-text preferences.
+///
+/// Writing the resolution obliges us to write the graphics settings as well. The resolution
+/// only survives if the client's first-launch hardware detection is suppressed, and that same
+/// detection is what would otherwise have chosen the quality settings — so suppressing it
+/// without furnishing them would trade a first launch at the wrong resolution for one at the
+/// client's built-in defaults. Only for a config nobody has played: see <see cref="Values"/>.
 /// </summary>
 public partial class WowConfigService(LogService log)
 {
@@ -26,7 +32,7 @@ public partial class WowConfigService(LogService log)
     {
         var path = ConfigPath(clientRoot);
         var existing = File.Exists(path) ? File.ReadAllText(path) : "";
-        var updated = SetValues(existing, Values(display));
+        var updated = SetValues(existing, Values(display, HasRunBefore(existing)));
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         AtomicFile.WriteAllText(path, updated);
         log.Append(
@@ -67,17 +73,88 @@ public partial class WowConfigService(LogService log)
         Path.Join(clientRoot, "WTF", "Config.wtf");
 
     /// <summary>
-    /// The directives that describe one display choice.
+    /// Whether the client has already completed a launch.
+    ///
+    /// The client writes hwDetect "0" itself once its hardware detection has run, so the
+    /// directive's presence is the one durable record that someone has played this install —
+    /// which is what separates a config we may furnish with defaults from one that is the
+    /// user's own work.
+    /// </summary>
+    internal static bool HasRunBefore(string existing) => ReadValue(existing, "hwDetect") == "0";
+
+    /// <summary>
+    /// The directives one display choice implies.
     ///
     /// gxMaximize goes with windowed mode: without it a windowed client at the desktop's own
     /// resolution opens with its title bar off-screen and cannot be moved back.
+    ///
+    /// hwDetect "0" is what makes the other three survive. On a config that does not set it the
+    /// client treats it as 1 and runs its first-launch hardware detection, which resets the
+    /// whole video block — resolution included — before it ever sets a mode. gx.log from an
+    /// install that had 3440x1440 written into it:
+    ///
+    ///     ConsoleDeviceInitialize(): hwDetect = 1, hwChanged = 0
+    ///     CGxDeviceD3d::DeviceSetFormat(): Format 1024 x 768 @ 60 Fullscreen
+    ///
+    /// The resolution was read and then thrown away. With hwDetect "0" the same client on the
+    /// same machine opens at 3440x1440 @ 240.
     /// </summary>
-    internal static Dictionary<string, string> Values(DisplaySettings display) =>
-        new(StringComparer.OrdinalIgnoreCase)
+    internal static Dictionary<string, string> Values(DisplaySettings display, bool hasRunBefore)
+    {
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["gxResolution"] = display.Resolution.ToString(),
             ["gxWindow"] = display.Windowed ? "1" : "0",
             ["gxMaximize"] = display.Windowed ? "1" : "0",
+            ["hwDetect"] = "0",
+        };
+        if (hasRunBefore)
+        {
+            // Someone has played this install, so the quality settings in the file are theirs.
+            // Suppressing detection is still right — it would discard the resolution they just
+            // picked — but furnishing defaults over the top of their own choices is not.
+            return values;
+        }
+        foreach (var (key, value) in QualityPreset)
+        {
+            values[key] = value;
+        }
+        return values;
+    }
+
+    /// <summary>
+    /// The client's own highest quality preset, for a config that has never been played.
+    ///
+    /// Needed because hwDetect "0" suppresses the detection that would otherwise choose these,
+    /// so leaving them out trades a first launch at the wrong resolution for one at the client's
+    /// built-in defaults. Any machine that can run this installer maxes a 2010 D3D9 game, so the
+    /// top preset is the right one rather than a guess at the hardware.
+    ///
+    /// Values are the client's own, not a guess: GraphicsQualityLevels.lua in the client's
+    /// Interface MPQ defines six quality levels, and level 5 is the one its author labelled
+    /// "--ULTRA mode" (6 is the sentinel for a custom mix, not a higher preset). The control
+    /// names there map to these cvars through VideoOptionsPanels.xml.
+    ///
+    /// TerrainDetail is the one level-5 entry with no directive here: its slider calls
+    /// SetTerrainMip() rather than setting a cvar, so it is not a Config.wtf value at all.
+    /// </summary>
+    internal static readonly Dictionary<string, string> QualityPreset =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["farclip"] = "1277", // ViewDistance
+            ["particleDensity"] = "1.0", // ParticleDensity
+            ["extShadowQuality"] = "5", // ShadowQuality
+            ["environmentDetail"] = "1.5", // EnvironmentDetail
+            ["groundEffectDensity"] = "64", // ClutterDensity
+            ["groundEffectDist"] = "140", // ClutterRadius
+            ["BaseMip"] = "1", // TextureResolution
+            ["textureFilteringMode"] = "5", // TextureFiltering
+            ["weatherDensity"] = "3", // WeatherIntensity
+            ["componentTextureLevel"] = "9", // PlayerTexture
+            ["specular"] = "1", // SpecularLighting
+            ["ffxGlow"] = "1", // FullScreenGlow
+            ["ffxDeath"] = "1", // DeathEffect
+            ["projectedTextures"] = "1", // ProjectedTextures
         };
 
     /// <summary>

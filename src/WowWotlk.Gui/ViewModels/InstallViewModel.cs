@@ -539,7 +539,9 @@ public partial class InstallViewModel : ViewModelBase
                 $"The saved resolution {saved} is not offered by any connected display; "
                     + $"{SelectedResolution?.Value} will be used instead.",
             _ => "Written to WTF/Config.wtf, so the first launch is already the right size. "
-                + "Only modes your displays report are listed.",
+                + "Only modes your displays report are listed. A client nobody has played yet "
+                + "also gets the game's own Ultra preset; one you have played keeps its "
+                + "graphics settings.",
         };
     }
 
