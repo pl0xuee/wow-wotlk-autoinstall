@@ -1,3 +1,4 @@
+using WowWotlk.Gui.Services.Addons;
 using WowWotlk.Gui.Models;
 using WowWotlk.Gui.Services.Steam;
 
@@ -9,6 +10,7 @@ public enum InstallPhase
     Acquire,
     Extract,
     Configure,
+    Addons,
     SteamSetup,
     Done,
 }
@@ -43,6 +45,8 @@ public class ClientInstallOrchestrator(
     GoogleDriveDownloader downloader,
     ClientArchiveExtractor extractor,
     RealmlistService realmlist,
+    AddonCatalog catalog,
+    AddonInstallService addonInstaller,
     SteamLocator steamLocator,
     CompatToolCatalog compatTools,
     SteamRuntimeCatalog steamRuntimes,
@@ -81,14 +85,86 @@ public class ClientInstallOrchestrator(
         settings.ClientRoot = clientRoot;
         await settingsService.SaveAsync();
 
+        var addonOutcome = settings.InstallAddonsAfterInstall
+            ? await InstallAddonsAsync(clientRoot, settings, ct)
+            : null;
+
         if (settings.SetupSteamAfterInstall)
         {
             await RunSteamSetupAsync(clientRoot, settings, ct);
         }
 
-        Report(InstallPhase.Done, $"Client ready at {clientRoot}", 1);
+        var summary = addonOutcome is { Failed: > 0 }
+            ? $"Client ready at {clientRoot} — {addonOutcome.Installed} addons installed, "
+                + $"{addonOutcome.Failed} could not be fetched (see the log)"
+            : $"Client ready at {clientRoot}";
+        Report(InstallPhase.Done, summary, 1);
         return clientRoot;
     }
+
+    public sealed record AddonOutcome(int Installed, int Failed);
+
+    /// <summary>
+    /// Installs the selected catalog addons.
+    ///
+    /// A failure here never fails the install. By this point the client is downloaded,
+    /// unpacked and pointed at the realm — throwing away all of that because one addon's
+    /// GitHub release moved would be absurd, and addons are the one part the user can redo in
+    /// seconds from the Addons page. Each failure is logged and counted instead.
+    /// </summary>
+    public async Task<AddonOutcome> InstallAddonsAsync(
+        string clientRoot,
+        AppSettings settings,
+        CancellationToken ct
+    )
+    {
+        var wanted = SelectedAddons(settings);
+        if (wanted.Count == 0)
+        {
+            return new AddonOutcome(0, 0);
+        }
+
+        Report(InstallPhase.Addons, "Installing addons…", 0);
+        var installed = 0;
+        var failed = 0;
+        for (var i = 0; i < wanted.Count; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            var addon = wanted[i];
+            Report(
+                InstallPhase.Addons,
+                addon.Name,
+                (double)i / wanted.Count,
+                $"{i + 1} / {wanted.Count}"
+            );
+            try
+            {
+                await addonInstaller.InstallFromCatalogAsync(clientRoot, addon, null, ct);
+                installed++;
+            }
+            catch (Exception e) when (!ct.IsCancellationRequested)
+            {
+                failed++;
+                log.Append($"Could not install {addon.Name}: {e.Message}");
+            }
+        }
+        log.Append(
+            failed == 0
+                ? $"Installed {installed} addons."
+                : $"Installed {installed} addons; {failed} could not be fetched and can be "
+                    + "retried from the Addons page."
+        );
+        return new AddonOutcome(installed, failed);
+    }
+
+    /// <summary>
+    /// The catalog entries the one-click install should fetch: the user's saved choice, or the
+    /// catalog's own recommended set when they have never made one.
+    /// </summary>
+    public List<CatalogAddon> SelectedAddons(AppSettings settings) =>
+        settings.SelectedAddonIds is { } ids
+            ? catalog.Entries.Where(e => ids.Contains(e.Id, StringComparer.Ordinal)).ToList()
+            : catalog.Entries.Where(e => e.Recommended).ToList();
 
     /// <summary>
     /// Registers the client with Steam. Public so the Steam page can run the same pipeline on

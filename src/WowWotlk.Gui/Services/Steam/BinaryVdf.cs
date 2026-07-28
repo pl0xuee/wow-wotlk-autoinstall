@@ -22,6 +22,13 @@ public static class BinaryVdf
 
     public static Dictionary<string, object> Read(byte[] data)
     {
+        // A zero-length file has no entries to lose, so it reads as an empty root rather than
+        // as corruption. Treating it as truncated makes every entry point into the Steam
+        // feature throw for good, with no way back except deleting the file by hand.
+        if (data.Length == 0)
+        {
+            return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        }
         var pos = 0;
         return ReadMap(data, ref pos);
     }

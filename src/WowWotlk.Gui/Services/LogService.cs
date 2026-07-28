@@ -47,7 +47,16 @@ public class LogService
         // stamp the file line with a different day than the one shown in the pane.
         var now = DateTime.Now;
         var stamped = $"[{now:HH:mm:ss}] {line}";
-        LineAdded?.Invoke(stamped);
+        try
+        {
+            LineAdded?.Invoke(stamped);
+        }
+        catch (Exception)
+        {
+            // Append is called from inside catch blocks all over the app, including ones
+            // reporting a failure the user needs to see. A throwing subscriber must not
+            // replace that error with its own, or take the process down on the way past.
+        }
         if (_logFile is null)
         {
             return;
@@ -56,6 +65,7 @@ public class LogService
         {
             try
             {
+                RollIfOversized();
                 File.AppendAllText(_logFile, $"[{now:yyyy-MM-dd}]{stamped}\n");
             }
             catch
@@ -63,6 +73,21 @@ public class LogService
                 // Logging must never take the app down.
             }
         }
+    }
+
+    /// <summary>
+    /// Keeps one previous log alongside the current one, so the file the UI offers to open
+    /// stays openable. Without any rotation it only ever grows, and it is pointed at users
+    /// precisely when something has gone wrong and they need to read it.
+    /// </summary>
+    private void RollIfOversized()
+    {
+        const long maxBytes = 4L * 1024 * 1024;
+        if (_logFile is null || !File.Exists(_logFile) || new FileInfo(_logFile).Length < maxBytes)
+        {
+            return;
+        }
+        File.Move(_logFile, _logFile + ".1", overwrite: true);
     }
 
     private readonly string? _logFile;

@@ -4,95 +4,143 @@
     "name": "Questie",
     "category": "Quests",
     "description": "Puts quest givers, objectives and turn-ins back on the map and minimap. The 3.3.5a backport; the client itself has no quest tracking beyond the objective text.",
-    "source": { "kind": "github", "repo": "Netrinil/Questie-335" },
-    "homepage": "https://github.com/Netrinil/Questie-335"
+    "source": {
+      "kind": "github",
+      "repo": "Netrinil/Questie-335"
+    },
+    "homepage": "https://github.com/Netrinil/Questie-335",
+    "recommended": true
   },
   {
     "id": "immersion",
     "name": "Immersion",
     "category": "Quests",
     "description": "Replaces the quest and gossip windows with a full-screen, voice-over style dialogue frame. Backported from the retail addon.",
-    "source": { "kind": "github", "repo": "s0h2x/Immersion-WotLK" },
-    "homepage": "https://github.com/s0h2x/Immersion-WotLK"
+    "source": {
+      "kind": "github",
+      "repo": "s0h2x/Immersion-WotLK"
+    },
+    "homepage": "https://github.com/s0h2x/Immersion-WotLK",
+    "recommended": false
   },
   {
     "id": "elvui",
     "name": "ElvUI",
     "category": "Interface",
     "description": "Complete replacement for the default interface: unit frames, action bars, bags, chat and nameplates in one configurable package.",
-    "source": { "kind": "github", "repo": "ElvUI-WotLK/ElvUI" },
-    "homepage": "https://github.com/ElvUI-WotLK/ElvUI"
+    "source": {
+      "kind": "github",
+      "repo": "ElvUI-WotLK/ElvUI"
+    },
+    "homepage": "https://github.com/ElvUI-WotLK/ElvUI",
+    "recommended": false
   },
   {
     "id": "dominos",
     "name": "Dominos",
     "category": "Interface",
     "description": "Action bar replacement. Move, resize, page and hide any bar; the Bartender alternative for 3.3.5a.",
-    "source": { "kind": "github", "repo": "bkader/Dominos" },
-    "homepage": "https://github.com/bkader/Dominos"
+    "source": {
+      "kind": "github",
+      "repo": "bkader/Dominos"
+    },
+    "homepage": "https://github.com/bkader/Dominos",
+    "recommended": false
   },
   {
     "id": "omnicc",
     "name": "OmniCC",
     "category": "Interface",
     "description": "Draws the remaining cooldown as text on every button, item and buff icon.",
-    "source": { "kind": "github", "repo": "NoM0Re/OmniCC-WotLK" },
-    "homepage": "https://github.com/NoM0Re/OmniCC-WotLK"
+    "source": {
+      "kind": "github",
+      "repo": "NoM0Re/OmniCC-WotLK"
+    },
+    "homepage": "https://github.com/NoM0Re/OmniCC-WotLK",
+    "recommended": true
   },
   {
     "id": "weakauras",
     "name": "WeakAuras 2",
     "category": "Combat",
     "description": "Custom visual and audio alerts for buffs, debuffs, cooldowns and boss timers. The 3.3.5a backport of WeakAuras 2.",
-    "source": { "kind": "github", "repo": "NoM0Re/WeakAuras-WotLK" },
-    "homepage": "https://github.com/NoM0Re/WeakAuras-WotLK"
+    "source": {
+      "kind": "github",
+      "repo": "NoM0Re/WeakAuras-WotLK"
+    },
+    "homepage": "https://github.com/NoM0Re/WeakAuras-WotLK",
+    "recommended": true
   },
   {
     "id": "skada",
     "name": "Skada",
     "category": "Combat",
     "description": "Damage, healing and threat meter. Lighter on memory than Recount and still actively maintained for WotLK.",
-    "source": { "kind": "github", "repo": "bkader/Skada-WoTLK" },
-    "homepage": "https://github.com/bkader/Skada-WoTLK"
+    "source": {
+      "kind": "github",
+      "repo": "bkader/Skada-WoTLK"
+    },
+    "homepage": "https://github.com/bkader/Skada-WoTLK",
+    "recommended": true
   },
   {
     "id": "dbm",
     "name": "Deadly Boss Mods",
     "category": "Raiding",
     "description": "Boss timers, warnings and range checks for every WotLK raid and dungeon, plus the Classic and Burning Crusade instances.",
-    "source": { "kind": "github", "repo": "NoM0Re/DBM-Warmane" },
-    "homepage": "https://github.com/NoM0Re/DBM-Warmane"
+    "source": {
+      "kind": "github",
+      "repo": "NoM0Re/DBM-Warmane"
+    },
+    "homepage": "https://github.com/NoM0Re/DBM-Warmane",
+    "recommended": true
   },
   {
     "id": "grid2",
     "name": "Grid2",
     "category": "Raiding",
     "description": "Compact raid frames built around status indicators, for healing a 25-man without hunting for the debuff.",
-    "source": { "kind": "github", "repo": "bkader/Grid2-WoTLK" },
-    "homepage": "https://github.com/bkader/Grid2-WoTLK"
+    "source": {
+      "kind": "github",
+      "repo": "bkader/Grid2-WoTLK"
+    },
+    "homepage": "https://github.com/bkader/Grid2-WoTLK",
+    "recommended": false
   },
   {
     "id": "atlasloot",
     "name": "AtlasLoot",
     "category": "Loot",
     "description": "Browse the full loot table of every boss, faction and crafting profession without leaving the game.",
-    "source": { "kind": "github", "repo": "Wolf72x/AtlasLootClassic" },
-    "homepage": "https://github.com/Wolf72x/AtlasLootClassic"
+    "source": {
+      "kind": "github",
+      "repo": "Wolf72x/AtlasLootClassic"
+    },
+    "homepage": "https://github.com/Wolf72x/AtlasLootClassic",
+    "recommended": true
   },
   {
     "id": "auctionator",
     "name": "Auctionator",
     "category": "Economy",
     "description": "Rewrites the auction house into a search-and-post workflow with remembered prices. A 3.3.5a fork of Auctionator 2.9.9.",
-    "source": { "kind": "github", "repo": "Sleepywalker69/Auctionator-CoA-Ascension" },
-    "homepage": "https://github.com/Sleepywalker69/Auctionator-CoA-Ascension"
+    "source": {
+      "kind": "github",
+      "repo": "Sleepywalker69/Auctionator-CoA-Ascension"
+    },
+    "homepage": "https://github.com/Sleepywalker69/Auctionator-CoA-Ascension",
+    "recommended": true
   },
   {
     "id": "cartomapper",
     "name": "CartoMapper",
     "category": "Maps",
     "description": "World map and minimap overhaul: coordinates, zoom, instance entrances and a searchable map list.",
-    "source": { "kind": "github", "repo": "Zendevve/CartoMapper" },
-    "homepage": "https://github.com/Zendevve/CartoMapper"
+    "source": {
+      "kind": "github",
+      "repo": "Zendevve/CartoMapper"
+    },
+    "homepage": "https://github.com/Zendevve/CartoMapper",
+    "recommended": false
   }
 ]

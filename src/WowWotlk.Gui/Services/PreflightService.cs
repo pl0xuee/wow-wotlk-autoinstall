@@ -94,7 +94,7 @@ public class PreflightService(
         {
             ClientSource.LocalZip when string.IsNullOrWhiteSpace(settings.LocalZipPath) =>
                 new PreflightCheck("Client source", CheckState.Fail, "No zip file chosen."),
-            ClientSource.LocalZip when !File.Exists(settings.LocalZipPath) =>
+            ClientSource.LocalZip when !File.Exists(AppSettings.ExpandHome(settings.LocalZipPath!)) =>
                 new PreflightCheck(
                     "Client source",
                     CheckState.Fail,
@@ -107,7 +107,7 @@ public class PreflightService(
             ),
             ClientSource.ExistingFolder when string.IsNullOrWhiteSpace(settings.ExistingClientPath) =>
                 new PreflightCheck("Client source", CheckState.Fail, "No client folder chosen."),
-            ClientSource.ExistingFolder when ClientLocator.Find(settings.ExistingClientPath) is null =>
+            ClientSource.ExistingFolder when ClientLocator.Find(AppSettings.ExpandHome(settings.ExistingClientPath!)) is null =>
                 new PreflightCheck(
                     "Client source",
                     CheckState.Fail,
@@ -117,7 +117,7 @@ public class PreflightService(
             ClientSource.ExistingFolder => new PreflightCheck(
                 "Client source",
                 CheckState.Ok,
-                ClientLocator.Find(settings.ExistingClientPath)!
+                ClientLocator.Find(AppSettings.ExpandHome(settings.ExistingClientPath!))!
             ),
             _ when string.IsNullOrWhiteSpace(settings.DriveFileId) => new PreflightCheck(
                 "Client source",
@@ -215,11 +215,9 @@ public class PreflightService(
                     BuildSpaceCheck(
                         "Disk space",
                         volume.AvailableFreeSpace,
-                        requiredDownload + requiredInstall,
+                        StillToDownload(requiredDownload, downloadDir) + requiredInstall,
                         where,
-                        // One budget covers both folders here, so either one already being on
-                        // disk means the requirement overstates what the run actually needs.
-                        HasExistingInstall(installDir) || HasExistingDownloads(downloadDir)
+                        HasExistingInstall(installDir)
                     ),
                 ];
             }
@@ -228,9 +226,8 @@ public class PreflightService(
                 BuildSpaceCheck(
                     "Download space",
                     downloadVolume.AvailableFreeSpace,
-                    requiredDownload,
-                    downloadVolume.RootDirectory.FullName,
-                    HasExistingDownloads(downloadDir)
+                    StillToDownload(requiredDownload, downloadDir),
+                    downloadVolume.RootDirectory.FullName
                 ),
                 BuildSpaceCheck(
                     "Install space",
@@ -314,16 +311,44 @@ public class PreflightService(
     internal static bool HasExistingInstall(string installDir) =>
         ClientLocator.Find(installDir) is not null;
 
-    internal static bool HasExistingDownloads(string downloadDir)
+    /// <summary>
+    /// What still has to come down the wire, given whatever is already in the download folder.
+    ///
+    /// Counted in bytes rather than answered as "something is already there": an unrelated file
+    /// in the folder — a leftover readme, a download folder pointed at ~/Downloads — must not
+    /// reduce the requirement at all, and a half-finished .part must reduce it by exactly its
+    /// own size. Getting this wrong in the lenient direction lets an install start that then
+    /// runs the disk dry, which is the entire failure this check exists to prevent.
+    /// </summary>
+    internal static long StillToDownload(long requiredDownload, string downloadDir)
     {
-        try
+        if (requiredDownload <= 0)
         {
-            return Directory.EnumerateFiles(downloadDir).Any();
+            return 0;
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        var already = ExistingDownloadBytes(downloadDir);
+        return Math.Max(0, requiredDownload - already);
+    }
+
+    internal static long ExistingDownloadBytes(string downloadDir)
+    {
+        var zip = Path.Join(downloadDir, Client.GoogleDriveDownloader.ClientZipName);
+        long total = 0;
+        foreach (var candidate in (string[])[zip, zip + ".part"])
         {
-            return false;
+            try
+            {
+                if (File.Exists(candidate))
+                {
+                    total += new FileInfo(candidate).Length;
+                }
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                // Unreadable means it cannot be counted as progress.
+            }
         }
+        return total;
     }
 
     internal static PreflightCheck BuildSpaceCheck(

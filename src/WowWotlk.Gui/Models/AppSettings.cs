@@ -53,6 +53,16 @@ public class AppSettings
 
     public bool SetupSteamAfterInstall { get; set; } = true;
 
+    /// <summary>Whether the one-click install also installs addons.</summary>
+    public bool InstallAddonsAfterInstall { get; set; } = true;
+
+    /// <summary>
+    /// Catalog ids the one-click install will fetch. Null means "the recommended set", so a
+    /// fresh install follows the catalog rather than a list frozen at first run; an empty list
+    /// is a real choice to install none and is kept as such.
+    /// </summary>
+    public List<string>? SelectedAddonIds { get; set; }
+
     /// <summary>
     /// Resolved client root (the folder holding Wow.exe) from the last successful install.
     /// The Addons and Steam pages both need it and neither should have to re-scan for it.

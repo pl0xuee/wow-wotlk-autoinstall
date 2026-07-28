@@ -125,19 +125,40 @@ public class ShortcutsVdfService
                     },
                 };
 
+        var isNew = existingKey is null;
         entry["appid"] = signedAppId;
         entry["AppName"] = appName;
         entry["Exe"] = $"\"{exePath}\"";
         entry["StartDir"] = $"\"{startDir}\"";
-        entry["LaunchOptions"] = launchOptions;
-        // Only set the icon if we have one; don't clobber a user-set custom icon with "".
-        if (!string.IsNullOrEmpty(iconPath))
+
+        // Launch options and icon are the two fields a user most often hand-edits on a
+        // shortcut — a PROTON_* variable, gamemoderun, a mangohud wrapper, a chosen icon. The
+        // app owns them when it creates the entry and leaves them alone afterwards, otherwise
+        // every re-run of the Steam page silently reverts the user's own tuning.
+        if (isNew)
+        {
+            entry["LaunchOptions"] = launchOptions;
+        }
+        else if (entry.TryGetValue("LaunchOptions", out var current)
+            && current is string existingOptions
+            && !existingOptions.Contains("%command%", StringComparison.Ordinal))
+        {
+            // Except when what is there cannot work: without %command% Steam replaces the
+            // launch rather than wrapping it, and the shortcut does nothing at all.
+            entry["LaunchOptions"] = launchOptions;
+        }
+        else
+        {
+            entry.TryAdd("LaunchOptions", launchOptions);
+        }
+
+        if (isNew && !string.IsNullOrEmpty(iconPath))
         {
             entry["icon"] = iconPath;
         }
         else
         {
-            entry.TryAdd("icon", "");
+            entry.TryAdd("icon", iconPath ?? "");
         }
 
         var key =

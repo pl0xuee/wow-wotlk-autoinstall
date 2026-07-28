@@ -12,17 +12,21 @@ namespace WowWotlk.Gui.Services.Steam;
 /// </summary>
 public class SteamProcessService(LogService log)
 {
-    public bool IsRunning() => Run("pgrep", "-f steamwebhelper").ExitCode == 0;
+    public bool IsRunning() => Run("pgrep", "-x steamwebhelper").ExitCode == 0;
 
     public async Task ShutdownAsync(CancellationToken ct = default)
     {
         if (!IsRunning())
         {
             log.Append("Steam is not running");
+            // Not a shortcut out: steamwebhelper dies several seconds before the main process
+            // finishes writing its state. Returning here on a Steam the user has just quit is
+            // how a freshly written shortcuts.vdf gets overwritten by the dying instance.
+            await WaitForFullExitAsync(ct);
             return;
         }
         log.Append("Shutting down Steam…");
-        Run("pkill", "steam");
+        Run("pkill", "-x steam");
         for (var i = 0; i < 15; i++)
         {
             await Task.Delay(1000, ct);
@@ -33,7 +37,7 @@ public class SteamProcessService(LogService log)
             }
         }
         log.Append("Steam still running, escalating to SIGKILL");
-        Run("pkill", "-9 steam");
+        Run("pkill", "-9 -x steam");
         await Task.Delay(2000, ct);
         if (IsRunning())
         {
@@ -45,13 +49,19 @@ public class SteamProcessService(LogService log)
     /// <summary>
     /// steamwebhelper dies first, but the main steam process lingers several seconds
     /// finishing teardown (registry.vdf etc.). Relaunching in that window makes the new
-    /// steam defer to the dying instance and exit, leaving nothing running.
+    /// steam defer to the dying instance and exit, leaving nothing running — and writing the
+    /// VDFs in that window gets those writes overwritten by the state the dying process
+    /// serialises on its way out.
+    ///
+    /// Matched with -x throughout: an unanchored "steam" also matches steamcmd,
+    /// steamtinkerlaunch and anything else a user has running with steam in its name, which
+    /// for pkill means killing them.
     /// </summary>
     private async Task WaitForFullExitAsync(CancellationToken ct)
     {
         for (var i = 0; i < 30; i++)
         {
-            if (Run("pgrep", "steam").ExitCode != 0)
+            if (Run("pgrep", "-x steam").ExitCode != 0)
             {
                 log.Append("Steam stopped");
                 return;

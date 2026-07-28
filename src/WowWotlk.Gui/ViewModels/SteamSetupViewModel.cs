@@ -138,7 +138,16 @@ public partial class SteamSetupViewModel : ViewModelBase
     /// Proton build installed while the app was open, would otherwise not show up here until
     /// the user found the Re-check button.
     /// </summary>
-    public override void OnShown() => _ = RefreshAsync();
+    public override void OnShown()
+    {
+        // Not while a setup is running: RefreshAsync resets the step list, so navigating away
+        // and back mid-run would blank the ticks the user is watching and only repaint the
+        // step that happens to report next.
+        if (!IsBusy)
+        {
+            _ = RefreshAsync();
+        }
+    }
 
     /// <summary>Re-runs the requirement checks and rescans compatibilitytools.d.</summary>
     [RelayCommand]

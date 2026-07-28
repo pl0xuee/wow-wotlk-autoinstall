@@ -49,6 +49,8 @@ public class GoogleDriveDownloader(IHttpClientFactory hcf, LogService log)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
 
+        var partial = destinationPath + TempSuffix;
+
         if (File.Exists(destinationPath))
         {
             var have = new FileInfo(destinationPath).Length;
@@ -58,17 +60,33 @@ public class GoogleDriveDownloader(IHttpClientFactory hcf, LogService log)
                 progress?.Report(new DownloadProgress(have, have));
                 return destinationPath;
             }
+            // Moved aside, not deleted. The size can disagree simply because the configured
+            // expected size is wrong for this upload, and the file may be one the user
+            // downloaded by hand over a browser after hitting the daily quota — deleting it
+            // before knowing a replacement can even be fetched destroys 16 GiB and a day's
+            // quota in one step.
             log.Append(
                 $"Existing {Path.GetFileName(destinationPath)} is {Human(have)}, expected "
-                    + $"{Human(expectedBytes)} — discarding it and downloading again."
+                    + $"{Human(expectedBytes)} — setting it aside as {Path.GetFileName(partial)} to resume from."
             );
-            File.Delete(destinationPath);
+            if (File.Exists(partial))
+            {
+                File.Delete(partial);
+            }
+            File.Move(destinationPath, partial);
         }
 
-        var partial = destinationPath + TempSuffix;
         var resumeFrom = File.Exists(partial) ? new FileInfo(partial).Length : 0;
-        // A .part at or past the expected size is not a resume point, it's a bad file.
-        if (expectedBytes > 0 && resumeFrom >= expectedBytes)
+        // At exactly the expected size the .part is the finished download, not a bad file:
+        // promote it rather than fetching 16 GiB again.
+        if (expectedBytes > 0 && resumeFrom == expectedBytes)
+        {
+            File.Move(partial, destinationPath, overwrite: true);
+            log.Append($"Found a complete download already on disk ({Human(resumeFrom)}).");
+            progress?.Report(new DownloadProgress(resumeFrom, resumeFrom));
+            return destinationPath;
+        }
+        if (expectedBytes > 0 && resumeFrom > expectedBytes)
         {
             log.Append($"Discarding a partial download that is already {Human(resumeFrom)}.");
             File.Delete(partial);
@@ -87,6 +105,21 @@ public class GoogleDriveDownloader(IHttpClientFactory hcf, LogService log)
         }
 
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+
+        // 416 means the .part is already at or past the end of the real file — which happens
+        // whenever the configured expected size is larger than the actual upload. Retrying the
+        // same range would fail identically every run, so the partial file is the problem and
+        // has to go; without this the install is stuck for good behind a raw HTTP error.
+        if (response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable && resumeFrom > 0)
+        {
+            File.Delete(partial);
+            throw new InvalidDataException(
+                $"The partial download was {Human(resumeFrom)}, which is past the end of the file "
+                    + "on Google Drive. It has been discarded — run the install again to download "
+                    + "from the start. If this repeats, the expected zip size in Settings is "
+                    + "larger than your upload; correct it or set it to 0."
+            );
+        }
         response.EnsureSuccessStatusCode();
 
         // Asked to resume but served the whole file: start over rather than append the first

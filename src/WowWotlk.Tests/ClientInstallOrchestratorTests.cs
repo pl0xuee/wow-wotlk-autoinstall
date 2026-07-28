@@ -2,6 +2,7 @@ using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
 using WowWotlk.Gui.Models;
 using WowWotlk.Gui.Services;
+using WowWotlk.Gui.Services.Addons;
 using WowWotlk.Gui.Services.Client;
 using WowWotlk.Gui.Services.Steam;
 using Xunit;
@@ -26,6 +27,10 @@ public class ClientInstallOrchestratorTests
             .AddSingleton<GoogleDriveDownloader>()
             .AddSingleton<ClientArchiveExtractor>()
             .AddSingleton<RealmlistService>()
+            .AddSingleton<AddonCatalog>()
+            .AddSingleton<AddonResolver>()
+            .AddSingleton<InstalledAddonStore>()
+            .AddSingleton<AddonInstallService>()
             .AddSingleton<SteamLocator>()
             .AddSingleton(_ => new CompatToolCatalog([]))
             .AddSingleton<SteamRuntimeCatalog>()
@@ -43,8 +48,10 @@ public class ClientInstallOrchestratorTests
         settings.ClientSource = ClientSource.ExistingFolder;
         settings.ExistingClientPath = clientDir;
         settings.InstallDir = clientDir;
-        // Steam setup is the one step this test can't run: it shuts down the user's Steam.
+        // The two steps a test can't run: Steam setup shuts down the user's Steam, and addon
+        // installs go to the network. Both are covered by their own tests.
         settings.SetupSteamAfterInstall = false;
+        settings.InstallAddonsAfterInstall = false;
         return (services.GetRequiredService<ClientInstallOrchestrator>(), settingsService);
     }
 

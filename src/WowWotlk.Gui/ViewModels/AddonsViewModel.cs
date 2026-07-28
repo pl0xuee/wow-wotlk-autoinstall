@@ -82,7 +82,11 @@ public partial class AddonsViewModel : ViewModelBase
 
     public bool HasClient => ClientRoot is not null;
 
-    public bool CanAct => HasClient && !IsBusy;
+    /// <summary>
+    /// Includes the shared runner: only one operation runs at a time across the app, so a
+    /// button left live during a client install is one that silently gets refused.
+    /// </summary>
+    public bool CanAct => HasClient && !IsBusy && !_runner.IsBusy;
 
     public AddonsViewModel(
         SettingsService settingsService,
@@ -99,14 +103,25 @@ public partial class AddonsViewModel : ViewModelBase
         _scanner = scanner;
         _runner = runner;
         _log = log;
+        runner.Started += _ => Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(CanAct)));
+        runner.Completed += (_, _) => Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(CanAct)));
         Refresh();
     }
 
     /// <summary>
     /// Re-scans on the way in, so a client installed since startup — or an addon dropped into
     /// Interface/AddOns by hand — shows up without the user hunting for Rescan.
+    ///
+    /// Skipped while an operation is running: the scan would race the files that operation is
+    /// writing, and Refresh resets rows the user is watching change.
     /// </summary>
-    public override void OnShown() => Refresh();
+    public override void OnShown()
+    {
+        if (!_runner.IsBusy)
+        {
+            Refresh();
+        }
+    }
 
     [RelayCommand]
     private void Refresh()
@@ -121,9 +136,14 @@ public partial class AddonsViewModel : ViewModelBase
         _store.Load();
         RebuildCatalog();
         RebuildInstalled();
-        StatusMessage = HasClient
-            ? ""
-            : "No client found yet. Install one on the Install page, or point the installer at a folder you already have.";
+        // Deliberately does not clear StatusMessage. Every command ends by calling Refresh, so
+        // clearing here wiped the "done"/"failed" line one statement after it was written and
+        // the status band never displayed anything at all.
+        if (!HasClient)
+        {
+            StatusMessage =
+                "No client found yet. Install one on the Install page, or point the installer at a folder you already have.";
+        }
     }
 
     partial void OnFilterChanged(string value) => RebuildCatalog();

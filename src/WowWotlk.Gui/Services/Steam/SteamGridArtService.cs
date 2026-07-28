@@ -31,17 +31,28 @@ public class SteamGridArtService(LogService log)
         }
     }
 
-    /// <summary>Writes capsules/hero/logo keyed by the shortcut's unsigned appid.</summary>
+    /// <summary>
+    /// Writes capsules/hero/logo keyed by the shortcut's unsigned appid.
+    ///
+    /// Existing files are left alone. Steam's grid folder is also where SteamGridDB and Steam's
+    /// own "Set custom artwork" put their images, so overwriting is how a user's chosen capsule
+    /// disappears — and it would happen on every press of the Steam page's button.
+    /// </summary>
     public void InstallGridArt(SteamInstallation steam, long unsignedAppId)
     {
         try
         {
             var grid = GridDir(steam);
-            Copy("landscape.png", Path.Join(grid, $"{unsignedAppId}.png"));
-            Copy("portrait.png", Path.Join(grid, $"{unsignedAppId}p.png"));
-            Copy("hero.png", Path.Join(grid, $"{unsignedAppId}_hero.png"));
-            Copy("logo.png", Path.Join(grid, $"{unsignedAppId}_logo.png"));
-            log.Append($"Library artwork installed for appid {unsignedAppId}");
+            var wrote = 0;
+            wrote += CopyIfAbsent("landscape.png", Path.Join(grid, $"{unsignedAppId}.png"));
+            wrote += CopyIfAbsent("portrait.png", Path.Join(grid, $"{unsignedAppId}p.png"));
+            wrote += CopyIfAbsent("hero.png", Path.Join(grid, $"{unsignedAppId}_hero.png"));
+            wrote += CopyIfAbsent("logo.png", Path.Join(grid, $"{unsignedAppId}_logo.png"));
+            log.Append(
+                wrote == 4 ? $"Library artwork installed for appid {unsignedAppId}"
+                : wrote == 0 ? $"Library artwork already set for appid {unsignedAppId}; left as it is"
+                : $"Library artwork: wrote {wrote} of 4 images, leaving existing artwork in place"
+            );
         }
         catch (Exception e)
         {
@@ -61,5 +72,16 @@ public class SteamGridArtService(LogService log)
         using var source = AssetLoader.Open(new Uri(AssetBase + asset));
         using var dest = File.Create(destination);
         source.CopyTo(dest);
+    }
+
+    /// <summary>Writes the asset only if nothing is there; returns 1 if it wrote.</summary>
+    private static int CopyIfAbsent(string asset, string destination)
+    {
+        if (File.Exists(destination))
+        {
+            return 0;
+        }
+        Copy(asset, destination);
+        return 1;
     }
 }

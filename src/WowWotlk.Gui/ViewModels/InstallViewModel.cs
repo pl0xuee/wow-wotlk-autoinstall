@@ -1,13 +1,30 @@
 using System.Collections.ObjectModel;
+using System.Reactive.Linq;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using WowWotlk.Gui.Models;
 using WowWotlk.Gui.Services;
+using WowWotlk.Gui.Services.Addons;
 using WowWotlk.Gui.Services.Client;
 
 namespace WowWotlk.Gui.ViewModels;
+
+/// <summary>
+/// One tickable catalog addon on the Install page. Mutable and observable rather than a
+/// record, because the tick box writes back to it directly.
+/// </summary>
+public partial class AddonChoice(string id, string name, string category, bool selected)
+    : ObservableObject
+{
+    public string Id { get; } = id;
+    public string Name { get; } = name;
+    public string Category { get; } = category;
+
+    [ObservableProperty]
+    public partial bool Selected { get; set; } = selected;
+}
 
 /// <summary>One preflight result. The booleans drive Avalonia's conditional style classes.</summary>
 public sealed record CheckRow(string Name, string Detail, CheckState State)
@@ -97,13 +114,57 @@ public partial class InstallViewModel : ViewModelBase
 
     partial void OnDriveFileIdChanged(string value) => OnPropertyChanged(nameof(HasDriveFileId));
 
-    public bool CanInstall => !IsRunning && !Checks.Any(c => c.State == CheckState.Fail);
+    [ObservableProperty]
+    public partial bool InstallAddons { get; set; }
+
+    /// <summary>Every catalog entry with a tick box, so the one-click set is visible and editable.</summary>
+    public ObservableCollection<AddonChoice> AddonChoices { get; } = [];
+
+    public string AddonSummary =>
+        !InstallAddons ? "No addons will be installed."
+        : AddonChoices.Count(c => c.Selected) is var n && n == 0
+            ? "No addons ticked."
+            : $"{n} addon{(n == 1 ? "" : "s")} will be installed after the client.";
+
+    partial void OnInstallAddonsChanged(bool value)
+    {
+        if (!_suppressWriteBack)
+        {
+            _settingsService.Settings.InstallAddonsAfterInstall = value;
+        }
+        OnPropertyChanged(nameof(AddonSummary));
+    }
+
+    // Set while OnShown copies the shared settings into this page's fields, so those writes
+    // are not mistaken for the user editing them and pushed straight back out again.
+    private bool _suppressWriteBack;
+
+    /// <summary>
+    /// Persists the ticked set. Written as an explicit list even when it matches the
+    /// recommended set, so a later change to the shipped catalog cannot silently add an addon
+    /// to somebody's install behind their back.
+    /// </summary>
+    private void SaveAddonSelection()
+    {
+        _settingsService.Settings.SelectedAddonIds =
+            [.. AddonChoices.Where(c => c.Selected).Select(c => c.Id)];
+        OnPropertyChanged(nameof(AddonSummary));
+    }
+
+    /// <summary>
+    /// Also consults the shared runner, not just this page. Only one operation runs at a time
+    /// across the whole app, so a button enabled while an addon install or Steam setup is in
+    /// flight is a button that wipes this page's progress track and then gets refused.
+    /// </summary>
+    public bool CanInstall =>
+        !IsRunning && !_runner.IsBusy && !Checks.Any(c => c.State == CheckState.Fail);
 
     public InstallViewModel(
         SettingsService settingsService,
         OperationRunner runner,
         ClientInstallOrchestrator orchestrator,
         PreflightService preflight,
+        AddonCatalog catalog,
         LogService log
     )
     {
@@ -113,6 +174,14 @@ public partial class InstallViewModel : ViewModelBase
         _log = log;
 
         var settings = settingsService.Settings;
+        InstallAddons = settings.InstallAddonsAfterInstall;
+        var chosen = orchestrator.SelectedAddons(settings).Select(a => a.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var entry in catalog.Entries)
+        {
+            var choice = new AddonChoice(entry.Id, entry.Name, entry.Category, chosen.Contains(entry.Id));
+            choice.PropertyChanged += (_, _) => SaveAddonSelection();
+            AddonChoices.Add(choice);
+        }
         InstallDir = settings.InstallDir;
         DownloadDir = settings.DownloadDir;
         ServerAddress = settings.ServerAddress;
@@ -126,14 +195,29 @@ public partial class InstallViewModel : ViewModelBase
         SourceIsFolder = settings.ClientSource == ClientSource.ExistingFolder;
         ResetPhases();
 
-        orchestrator.ProgressChanged += p =>
-            Dispatcher.UIThread.Post(() =>
-            {
-                PhaseDetail = p.Detail;
-                PhaseFraction = p.Fraction ?? 0;
-                PhaseCounter = p.Counter;
-                SetActivePhase(p.Phase);
-            });
+        // Any operation anywhere in the app changes whether this page's button should be live.
+        runner.Started += _ => Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(CanInstall)));
+        runner.Completed += (_, _) => Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(CanInstall)));
+
+        // Sampled, for the same reason MainViewModel samples it: extraction raises one event
+        // per entry and a client archive holds tens of thousands, so posting each to the UI
+        // thread backs it up for seconds at a time — the window stops repainting, Cancel stops
+        // responding, and the page runs thousands of entries behind what is on disk.
+        Observable
+            .FromEvent<InstallProgress>(
+                h => orchestrator.ProgressChanged += h,
+                h => orchestrator.ProgressChanged -= h
+            )
+            .Sample(TimeSpan.FromMilliseconds(150))
+            .Subscribe(p =>
+                Dispatcher.UIThread.Post(() =>
+                {
+                    PhaseDetail = p.Detail;
+                    PhaseFraction = p.Fraction ?? 0;
+                    PhaseCounter = p.Counter;
+                    SetActivePhase(p.Phase);
+                })
+            );
 
         _ = RefreshChecksAsync();
     }
@@ -203,9 +287,31 @@ public partial class InstallViewModel : ViewModelBase
     /// </summary>
     public override void OnShown()
     {
-        // The id is edited on the Settings page, so re-read it rather than showing the value
-        // this page was constructed with.
-        DriveFileId = _settingsService.Settings.DriveFileId;
+        // Re-read everything this page also writes, not just the fields it only displays.
+        //
+        // The Settings page edits the same AppSettings object and writes through on every
+        // keystroke, while this page keeps its own copy and pushes all of it back on install.
+        // Refreshing only some fields is worse than refreshing none: the stale ones are then
+        // written over the user's new values, so a client goes to the folder they replaced and
+        // connects to the realm they replaced, and settings.json ends up holding the old ones.
+        var settings = _settingsService.Settings;
+        _suppressWriteBack = true;
+        try
+        {
+            InstallDir = settings.InstallDir;
+            DownloadDir = settings.DownloadDir;
+            ServerAddress = settings.ServerAddress;
+            SetupSteamAfterInstall = settings.SetupSteamAfterInstall;
+            LocalZipPath = settings.LocalZipPath;
+            ExistingClientPath = settings.ExistingClientPath;
+            DriveFileId = settings.DriveFileId;
+            InstallAddons = settings.InstallAddonsAfterInstall;
+            InstalledClientRoot = settings.ClientRoot;
+        }
+        finally
+        {
+            _suppressWriteBack = false;
+        }
         _ = RunChecksAsync();
     }
 
@@ -224,16 +330,30 @@ public partial class InstallViewModel : ViewModelBase
             async (services, ct) =>
             {
                 var orchestrator = services.GetRequiredService<ClientInstallOrchestrator>();
-                InstalledClientRoot = await orchestrator.RunAsync(ct);
+                var root = await orchestrator.RunAsync(ct);
+                // Marshalled: this delegate runs on a thread-pool thread, and the property is
+                // bound to a visibility flip that invalidates layout.
+                Dispatcher.UIThread.Post(() => InstalledClientRoot = root);
             }
         );
         IsRunning = false;
-        if (result.Outcome == OperationOutcome.Succeeded)
+        PhaseCounter = "";
+        switch (result.Outcome)
         {
-            PhaseDetail = $"Client ready at {InstalledClientRoot}";
-            PhaseCounter = "";
-            PhaseFraction = 1;
-            SetActivePhase(InstallPhase.Done);
+            case OperationOutcome.Succeeded:
+                PhaseDetail = $"Client ready at {InstalledClientRoot}";
+                PhaseFraction = 1;
+                SetActivePhase(InstallPhase.Done);
+                break;
+            case OperationOutcome.Cancelled:
+                PhaseDetail = "Cancelled. Nothing was left half-applied — run it again to resume.";
+                break;
+            default:
+                // Without this the page keeps the failing segment lit and shows whatever the
+                // last progress line happened to be, so a failed install reads as one still
+                // running. The reason belongs where the user was looking.
+                PhaseDetail = result.Error?.Message ?? "The install failed. See the log for details.";
+                break;
         }
         await RunChecksAsync();
     }
@@ -302,6 +422,15 @@ public partial class InstallViewModel : ViewModelBase
     /// </summary>
     private void SetActivePhase(InstallPhase phase)
     {
+        // Replacing every segment on every progress event re-runs the whole ItemsControl's
+        // item generation — measurably the larger half of the cost when the events arrive at
+        // extraction speed. The track only changes when the phase does.
+        if (phase == _shownPhase)
+        {
+            return;
+        }
+        _shownPhase = phase;
+
         var index = Array.FindIndex(TrackPhases, p => p.Phase == phase);
         if (index < 0)
         {
@@ -314,11 +443,14 @@ public partial class InstallViewModel : ViewModelBase
         }
     }
 
+    private InstallPhase? _shownPhase;
+
     private static readonly (string Name, InstallPhase Phase)[] TrackPhases =
     [
         ("ACQUIRE", InstallPhase.Acquire),
         ("EXTRACT", InstallPhase.Extract),
-        ("CONFIGURE", InstallPhase.Configure),
+        ("REALM", InstallPhase.Configure),
+        ("ADDONS", InstallPhase.Addons),
         ("STEAM", InstallPhase.SteamSetup),
     ];
 

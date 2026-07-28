@@ -83,7 +83,13 @@ public partial class RealmlistService(LogService log)
         var line = $"set realmlist {address}";
         if (RealmlistLineRx().IsMatch(existing))
         {
-            return RealmlistLineRx().Replace(existing, line, 1);
+            // Every occurrence, not just the first. The client applies set directives in file
+            // order, so the last one wins — replacing only the first leaves a stale address
+            // still in effect while this method reports having changed it.
+            //
+            // A MatchEvaluator rather than a replacement string: $ is a substitution character
+            // there, so an address containing one would be expanded against the capture group.
+            return RealmlistLineRx().Replace(existing, _ => line);
         }
         return existing.Length == 0 ? line + "\n"
             : existing.EndsWith('\n') ? existing + line + "\n"

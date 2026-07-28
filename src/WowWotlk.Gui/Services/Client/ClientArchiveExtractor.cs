@@ -34,11 +34,24 @@ public class ClientArchiveExtractor(LogService log)
                 + $"{GoogleDriveDownloader.Human(total)}) to {destinationDir}"
         );
 
+        // Names that other entries live under, so a zero-length entry with no trailing slash
+        // can be recognised as the directory it really is.
+        var entriesUnderPrefix = archive
+            .Entries.Select(e => e.FullName.Replace('\\', '/'))
+            .Where(n => n.Contains('/'))
+            .Select(n => n[..n.LastIndexOf('/')])
+            .SelectMany(AncestorsOf)
+            .ToHashSet(StringComparer.Ordinal);
+
         long written = 0;
         foreach (var entry in archive.Entries)
         {
             ct.ThrowIfCancellationRequested();
-            var target = Path.GetFullPath(Path.Combine(destinationDir, entry.FullName));
+            // Some Windows zip tools store paths with backslashes. Left alone those become one
+            // literal filename containing slashes, so the client extracts to a flat pile of
+            // oddly-named files that looks like a success and cannot run.
+            var entryPath = entry.FullName.Replace('\\', '/');
+            var target = Path.GetFullPath(Path.Combine(destinationDir, entryPath));
             if (!target.StartsWith(root, StringComparison.Ordinal))
             {
                 // Zip slip: an entry named ../../.bashrc would otherwise write outside the
@@ -48,8 +61,15 @@ public class ClientArchiveExtractor(LogService log)
                 );
             }
 
-            // Directory entries have an empty name and zero length.
-            if (entry.Name.Length == 0)
+            // A directory is normally stored with a trailing slash, which leaves Name empty.
+            // Some writers omit the slash and store it as a zero-length entry instead; taken
+            // as a file that creates "Data" as a regular file, and the next entry under it
+            // then fails to create its directory — tens of minutes into a 16 GiB archive, and
+            // identically on every retry, because File.Create just truncates it again.
+            var isDirectory =
+                entry.Name.Length == 0
+                || (entry.Length == 0 && entriesUnderPrefix.Contains(entryPath));
+            if (isDirectory)
             {
                 Directory.CreateDirectory(target);
                 continue;
@@ -65,5 +85,17 @@ public class ClientArchiveExtractor(LogService log)
             progress?.Report(new ExtractProgress(written, total, entry.FullName));
         }
         log.Append("Extraction finished.");
+    }
+
+    /// <summary>"Data/enUS/Interface" → Data/enUS/Interface, Data/enUS, Data.</summary>
+    private static IEnumerable<string> AncestorsOf(string dir)
+    {
+        var current = dir;
+        while (current.Length > 0)
+        {
+            yield return current;
+            var cut = current.LastIndexOf('/');
+            current = cut < 0 ? "" : current[..cut];
+        }
     }
 }

@@ -32,17 +32,40 @@ public class InstalledAddonStore
     }
 
     public InstalledAddon? ById(string id) =>
-        _addons.FirstOrDefault(a => a.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+        _addons.FirstOrDefault(a => a.Id.Equals(id, StringComparison.Ordinal));
 
-    /// <summary>Records an install, replacing any earlier record of the same id so a re-install does not duplicate.</summary>
+    /// <summary>
+    /// Records an install, and enforces the one invariant the rest of the app relies on: a
+    /// folder under Interface/AddOns is claimed by at most one record.
+    ///
+    /// Two records can otherwise end up naming the same folder, because ids come from two
+    /// unrelated namespaces — a catalog id ("dbm") for a curated install, a folder name
+    /// ("DBM-Core") for a hand-installed zip. The UI indexes installed folders by name, so a
+    /// duplicate claim is not a cosmetic problem: it throws while the page is being built,
+    /// which happens during startup, and the record file persists — so the app stops opening
+    /// at all until the file is deleted by hand.
+    /// </summary>
     public void Record(InstalledAddon addon)
     {
         Forget(addon.Id);
+        var claimed = addon.Folders.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _addons.RemoveAll(a => a.Folders.Any(claimed.Contains));
         _addons.Add(addon);
     }
 
+    /// <summary>
+    /// Drops the record with exactly this id. Ordinal on purpose: ids come from two namespaces
+    /// that differ only in case for some addons ("questie" from the catalog, "Questie" from a
+    /// folder), and an ignore-case match would delete the wrong one.
+    /// </summary>
     public void Forget(string id) =>
-        _addons.RemoveAll(a => a.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+        _addons.RemoveAll(a => a.Id.Equals(id, StringComparison.Ordinal));
+
+    /// <summary>The record claiming <paramref name="folder"/>, or null.</summary>
+    public InstalledAddon? ByFolder(string folder) =>
+        _addons.FirstOrDefault(a =>
+            a.Folders.Any(f => f.Equals(folder, StringComparison.OrdinalIgnoreCase))
+        );
 
     private static List<InstalledAddon> ReadFile()
     {

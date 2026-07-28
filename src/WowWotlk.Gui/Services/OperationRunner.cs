@@ -31,19 +31,37 @@ public class OperationRunner(IServiceProvider serviceProvider, LogService log)
     {
         if (Interlocked.CompareExchange(ref _busy, 1, 0) != 0)
         {
-            return new OperationResult(
+            // Reported, not just returned. This path is reached by pressing a button whose
+            // command was enabled, and returning quietly means the button visibly does
+            // nothing — no status line, no log entry, no clue that anything happened.
+            var rejected = new OperationResult(
                 OperationOutcome.Failed,
                 new InvalidOperationException($"Another operation is running: {CurrentOperation}")
             );
+            log.Append($"{name}: not started — {CurrentOperation} is still running.");
+            try
+            {
+                Completed?.Invoke(name, rejected);
+            }
+            catch (Exception e)
+            {
+                log.Append($"{name}: a completion handler failed — {e.Message}");
+            }
+            return rejected;
         }
 
-        CurrentOperation = name;
-        _cts = new CancellationTokenSource();
-        Started?.Invoke(name);
-        log.Append($"{name}: started");
         OperationResult result;
         try
         {
+            CurrentOperation = name;
+            _cts = new CancellationTokenSource();
+            // Inside the try on purpose. Both of these dispatch to subscriber code — the view
+            // models post to the dispatcher, which throws once it has shut down — and a throw
+            // out here would leave the busy flag set with no finally to clear it. Every later
+            // operation for the life of the process would then refuse to start, and only a
+            // restart would fix it.
+            Started?.Invoke(name);
+            log.Append($"{name}: started");
             using var scope = serviceProvider.CreateScope();
             await Task.Run(() => work(scope.ServiceProvider, _cts.Token), _cts.Token);
             result = new OperationResult(OperationOutcome.Succeeded);
@@ -68,12 +86,22 @@ public class OperationRunner(IServiceProvider serviceProvider, LogService log)
         }
         finally
         {
-            _cts.Dispose();
+            _cts?.Dispose();
             _cts = null;
             CurrentOperation = null;
             Interlocked.Exchange(ref _busy, 0);
         }
-        Completed?.Invoke(name, result);
+        // Guarded for the same reason as Started: RunAsync's contract is to report a failure
+        // as a result, never to throw. An exception escaping here reaches an async command
+        // with nothing to catch it, which takes the process down.
+        try
+        {
+            Completed?.Invoke(name, result);
+        }
+        catch (Exception e)
+        {
+            log.Append($"{name}: a completion handler failed — {e.Message}");
+        }
         return result;
     }
 

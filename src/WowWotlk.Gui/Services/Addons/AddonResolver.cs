@@ -71,17 +71,25 @@ public class AddonResolver(IHttpClientFactory hcf, LogService log)
 
         if (release.TryGetProperty("assets", out var assets))
         {
-            foreach (var asset in assets.EnumerateArray())
-            {
-                var name = asset.GetProperty("name").GetString() ?? "";
-                if (
-                    name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
-                    && asset.TryGetProperty("browser_download_url", out var download)
-                    && download.GetString() is { Length: > 0 } assetUrl
+            var zips = assets
+                .EnumerateArray()
+                .Select(a => (
+                    Name: a.GetProperty("name").GetString() ?? "",
+                    Url: a.TryGetProperty("browser_download_url", out var d) ? d.GetString() : null
+                ))
+                .Where(a =>
+                    a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
+                    && a.Url is { Length: > 0 }
                 )
+                .ToList();
+            if (PickAsset(zips.Select(z => z.Name).ToList()) is { } chosen)
+            {
+                var picked = zips.First(z => z.Name == chosen);
+                if (zips.Count > 1)
                 {
-                    return new ResolvedAddon(assetUrl, version);
+                    log.Append($"{repo} publishes {zips.Count} zips; taking {picked.Name}.");
                 }
+                return new ResolvedAddon(picked.Url!, version);
             }
         }
 
@@ -99,4 +107,19 @@ public class AddonResolver(IHttpClientFactory hcf, LogService log)
             $"The latest release of {repo} has no .zip asset and no source archive to fall back on."
         );
     }
+
+    /// <summary>
+    /// Chooses between several .zip assets on one release, or null when there are none.
+    ///
+    /// Taking the first asset takes whatever was uploaded first, which is not the base build.
+    /// Repos that ship optional modules name them by what they add — Skada's release carries
+    /// <c>-with-all</c>, <c>-with-improvement</c> and <c>-with-storage</c> alongside the plain
+    /// build, and the plain one is what someone asking for "Skada" means. The shortest name is
+    /// that build, because every variant is the base name plus a suffix.
+    /// </summary>
+    internal static string? PickAsset(IReadOnlyList<string> names) =>
+        names
+            .OrderBy(n => n.Length)
+            .ThenBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
 }

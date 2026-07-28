@@ -174,30 +174,24 @@ public class AddonInstallService(
                 );
             }
 
-            var installed = new List<string>();
-            foreach (var folder in folders)
-            {
-                ct.ThrowIfCancellationRequested();
-                var folderName = Path.GetFileName(folder);
-                var destination = Path.Join(AddOnsDir(clientRoot), folderName);
-                if (Directory.Exists(destination))
-                {
-                    // A partial overwrite leaves files from the old version behind, which for
-                    // an addon that renamed a Lua file means both get loaded.
-                    Directory.Delete(destination, recursive: true);
-                }
-                MoveOrCopy(folder, destination);
-                installed.Add(folderName);
-            }
+            var installed = Commit(clientRoot, folders, ct);
 
             var (tocTitle, tocVersion, _) = ReadToc(
                 Path.Join(AddOnsDir(clientRoot), installed[0])
             );
-            var record = new InstalledAddon(
+            var recordId =
                 // A manual install has no catalog id, so the first folder name stands in: it is
                 // stable across re-installs of the same addon, which is what Record() needs to
                 // replace rather than duplicate the entry.
-                id ?? installed[0],
+                id ?? installed[0];
+
+            // An update whose archive dropped or renamed a folder would otherwise leave the old
+            // one on disk at the old version — still loaded by the client, no longer named by
+            // any record, and so beyond the reach of Remove.
+            RemoveOrphans(clientRoot, store.ById(recordId), installed);
+
+            var record = new InstalledAddon(
+                recordId,
                 name ?? tocTitle ?? installed[0],
                 installed,
                 tocVersion ?? version,
@@ -222,6 +216,118 @@ public class AddonInstallService(
             {
                 log.Append($"Could not clean up {staging.FullName} ({e.Message}).");
             }
+        }
+    }
+
+    /// <summary>
+    /// Moves the staged folders into Interface/AddOns as one unit, and returns the names they
+    /// landed under.
+    ///
+    /// The folders an addon ships are a set, not a sequence: AtlasLoot's data modules are
+    /// useless without its core, and a version mismatch between them is a Lua error on login.
+    /// So a failure partway through is rolled back rather than left half-applied — each folder
+    /// being replaced is renamed aside first (a rename within the same directory, so it is
+    /// atomic and costs nothing even for a large addon) and put back if any later folder fails.
+    /// </summary>
+    private List<string> Commit(string clientRoot, IReadOnlyList<string> folders, CancellationToken ct)
+    {
+        var addOns = AddOnsDir(clientRoot);
+        Directory.CreateDirectory(addOns);
+        var installed = new List<string>();
+        var displaced = new List<(string Destination, string Backup)>();
+        try
+        {
+            foreach (var folder in folders)
+            {
+                ct.ThrowIfCancellationRequested();
+                var folderName = AddonArchive.DestinationName(folder);
+                var destination = Path.Join(addOns, folderName);
+                if (Directory.Exists(destination))
+                {
+                    // Moved aside rather than deleted: a partial overwrite would leave files
+                    // from the old version behind, and an outright delete would leave nothing
+                    // to restore if a later folder in this set fails.
+                    var backup = Path.Join(addOns, $".{folderName}.replacing");
+                    if (Directory.Exists(backup))
+                    {
+                        Directory.Delete(backup, recursive: true);
+                    }
+                    Directory.Move(destination, backup);
+                    displaced.Add((destination, backup));
+                }
+                MoveOrCopy(folder, destination);
+                installed.Add(folderName);
+            }
+        }
+        catch
+        {
+            foreach (var name in installed)
+            {
+                TryDelete(Path.Join(addOns, name));
+            }
+            foreach (var (destination, backup) in displaced)
+            {
+                TryDelete(destination);
+                try
+                {
+                    Directory.Move(backup, destination);
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                {
+                    log.Append(
+                        $"Could not restore {destination} from {backup} ({e.Message}); the "
+                            + "previous version is still in that folder — rename it back by hand."
+                    );
+                }
+            }
+            throw;
+        }
+        foreach (var (_, backup) in displaced)
+        {
+            TryDelete(backup);
+        }
+        return installed;
+    }
+
+    /// <summary>
+    /// Deletes folders the previous version of this addon owned that the new one no longer
+    /// ships. Left alone they stay loaded by the client at the old version against new core
+    /// files, and no record names them any more, so Remove would never reach them.
+    /// </summary>
+    private void RemoveOrphans(string clientRoot, InstalledAddon? previous, List<string> installed)
+    {
+        if (previous is null)
+        {
+            return;
+        }
+        var kept = installed.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var folder in previous.Folders.Where(f => !kept.Contains(f)))
+        {
+            foreach (var dir in (string[])
+                [Path.Join(AddOnsDir(clientRoot), folder), Path.Join(DisabledDir(clientRoot), folder)])
+            {
+                if (Directory.Exists(dir))
+                {
+                    log.Append($"{folder} is no longer part of this addon; removing it.");
+                    TryDelete(dir);
+                }
+            }
+        }
+    }
+
+    private void TryDelete(string dir)
+    {
+        if (!Directory.Exists(dir))
+        {
+            return;
+        }
+        try
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            log.Append($"Could not delete {dir} ({e.Message}); remove it by hand.");
         }
     }
 

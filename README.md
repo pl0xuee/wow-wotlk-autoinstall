@@ -7,7 +7,8 @@
 One-click installer for a **World of Warcraft 3.3.5a** client on Linux, for playing on your own
 local server.
 
-Pick a folder, set the realm address, click **INSTALL CLIENT**, and walk away. The app handles:
+Pick a folder, set the realm address, click **INSTALL EVERYTHING**, and walk away. One button
+does the whole thing — client, realmlist, addons, Steam shortcut:
 
 - **The client** — downloads your 3.3.5a zip from Google Drive (resumable, so a dropped
   connection costs you nothing), unpacks it, and finds `Wow.exe` wherever the archive put it.
@@ -16,7 +17,11 @@ Pick a folder, set the realm address, click **INSTALL CLIENT**, and walk away. T
   not just one, and clears the client `Cache` folder so the new realm actually takes effect.
 - **Addons** — a curated catalog of 3.3.5a addons with one-click install and update, plus
   install-from-`.zip` and install-from-URL for anything else. Enable, disable and remove what's
-  installed, with a warning on any addon whose `## Interface` isn't `30300`.
+  installed, with a warning on any addon whose `## Interface` isn't `30300`. The Install page
+  lists the whole catalog with a tick box each: seven additive addons are pre-ticked, and ElvUI,
+  Dominos, Immersion, Grid2 and CartoMapper are not, because they replace core parts of the
+  interface and some of them conflict with each other. An addon that can't be fetched is skipped
+  and reported — it never fails the install.
 - **Steam** — adds a **World of Warcraft 3.3.5a** shortcut pointing at `Wow.exe`, assigns a Proton
   build, creates the prefix up front so your first Play click goes straight to the login screen,
   and installs library artwork.

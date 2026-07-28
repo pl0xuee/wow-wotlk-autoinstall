@@ -172,8 +172,52 @@
                     </StackPanel>
                     <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
                                Text="Written to every realmlist.wtf the client has. Use 127.0.0.1 for a server on this machine, or the LAN address of the box running it."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Addons. Shown in full rather than hidden behind a count: this is the one step that
+             writes files the user did not individually ask for, so what it will do is on the
+             page before they press the button. -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="ADDONS"/>
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <CheckBox Content="Install addons as part of the install"
+                              IsChecked="{Binding InstallAddons}"/>
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding AddonSummary}"/>
+                    <ItemsControl ItemsSource="{Binding AddonChoices}" IsEnabled="{Binding InstallAddons}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="3"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AddonChoice">
+                                <CheckBox IsChecked="{Binding Selected}" Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Category}" Classes="muted"
+                                                   FontSize="11" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </CheckBox>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                               Text="Unticked by default: ElvUI and Dominos both replace the action bars and conflict with each other, Immersion replaces the quest window, and Grid2 is for healing. An addon that can't be fetched is skipped and reported — it never fails the install."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="STEAM"/>
+            <Border Classes="card">
+                <StackPanel Spacing="10">
                     <CheckBox Content="Add the client to Steam when the install finishes"
                               IsChecked="{Binding SetupSteamAfterInstall}"/>
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                               Text="Closes and restarts Steam to write the shortcut, then creates the Proton prefix so your first Play goes straight to the login screen."/>
                 </StackPanel>
             </Border>
         </StackPanel>
@@ -211,7 +255,7 @@
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" Spacing="18" Margin="0,2,0,10">
-            <Button Classes="accent" Content="INSTALL CLIENT"
+            <Button Classes="accent" Content="INSTALL EVERYTHING"
                     Command="{Binding InstallCommand}" IsEnabled="{Binding CanInstall}"/>
             <TextBlock VerticalAlignment="Center" Classes="data muted"
                        IsVisible="{Binding InstalledClientRoot, Converter={x:Static ObjectConverters.IsNotNull}}"

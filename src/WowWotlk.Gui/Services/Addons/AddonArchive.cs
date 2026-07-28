@@ -54,15 +54,53 @@ internal static partial class AddonArchive
 
     internal static bool HasToc(string dir) => TocIn(dir) is not null;
 
-    /// <summary>The .toc that describes <paramref name="dir"/>, or null.</summary>
-    internal static string? TocIn(string dir)
+    /// <summary>
+    /// The name the folder must have under Interface/AddOns for the client to load it.
+    ///
+    /// The client loads exactly <c>AddOns/&lt;Dir&gt;/&lt;Dir&gt;.toc</c>, so the directory name is
+    /// not cosmetic — it has to equal the .toc's base name. The name the archive happened to
+    /// use is frequently wrong: a zip of an addon's *contents* has its .toc at the archive root
+    /// (which would otherwise install under the extractor's scratch folder name), and a GitHub
+    /// source zip wraps everything in <c>owner-repo-&lt;sha&gt;/</c>. Both produce a folder the
+    /// client silently ignores.
+    ///
+    /// Where several flavour .tocs sit side by side and none matches the folder, the shortest
+    /// base name is the base build — <c>Questie.toc</c> next to <c>Questie-Classic.toc</c> and
+    /// <c>Questie-BCC.toc</c>.
+    /// </summary>
+    internal static string DestinationName(string folder)
     {
-        List<string> tocs;
+        var folderName = Path.GetFileName(Path.TrimEndingDirectorySeparator(folder));
+        if (TocIn(folder) is not { } toc)
+        {
+            return folderName;
+        }
+        var tocName = Path.GetFileNameWithoutExtension(toc);
+        // A .toc already named after its folder means the archive got it right; keep the
+        // folder's own casing rather than rewriting it from the file name.
+        if (tocName.Equals(folderName, StringComparison.OrdinalIgnoreCase))
+        {
+            return folderName;
+        }
+        var candidates = Tocs(folder)
+            .Select(Path.GetFileNameWithoutExtension)
+            .OfType<string>()
+            .OrderBy(n => n.Length)
+            .ThenBy(n => n, StringComparer.Ordinal)
+            .ToList();
+        return candidates.Count > 0 ? candidates[0] : folderName;
+    }
+
+    /// <summary>
+    /// Every .toc in <paramref name="dir"/>, ordered by name. Matched by hand rather than with
+    /// a "*.toc" search pattern: that pattern is case-sensitive on Linux, and a zip built on
+    /// Windows can carry a .TOC.
+    /// </summary>
+    internal static List<string> Tocs(string dir)
+    {
         try
         {
-            // Matched by hand rather than with a "*.toc" search pattern: that pattern is
-            // case-sensitive on Linux, and a zip built on Windows can carry a .TOC.
-            tocs =
+            return
             [
                 .. Directory
                     .EnumerateFiles(dir)
@@ -72,8 +110,14 @@ internal static partial class AddonArchive
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return null;
+            return [];
         }
+    }
+
+    /// <summary>The .toc that describes <paramref name="dir"/>, or null.</summary>
+    internal static string? TocIn(string dir)
+    {
+        var tocs = Tocs(dir);
         // A repo that supports several game flavours ships one .toc per flavour in the same
         // folder (Questie.toc, Questie-Classic.toc, Questie-335.toc). The client loads exactly
         // the one named after the folder, so that is the one whose title and version describe

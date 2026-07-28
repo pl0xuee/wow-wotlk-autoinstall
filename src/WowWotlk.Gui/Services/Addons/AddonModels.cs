@@ -21,7 +21,14 @@ public sealed record CatalogAddon(
     string Category,
     string Description,
     AddonSource Source,
-    string? Homepage
+    string? Homepage,
+    /// <summary>
+    /// Ticked by default in the one-click install. True for addons that only add things, and
+    /// false for the ones that replace a core part of the interface — ElvUI and Dominos both
+    /// take over the action bars and fight each other, Immersion replaces the quest window,
+    /// Grid2 is for healers. Installing those without being asked is an opinion, not a default.
+    /// </summary>
+    bool Recommended = false
 );
 
 /// <summary>

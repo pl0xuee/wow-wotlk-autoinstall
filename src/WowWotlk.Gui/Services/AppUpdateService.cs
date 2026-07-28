@@ -58,11 +58,43 @@ public class AppUpdateService(IHttpClientFactory hcf)
                 }
             }
         }
-        var hasUpdate =
-            Version.TryParse(tag.TrimStart('v', 'V'), out var latest)
-            && Version.TryParse(CurrentVersion, out var current)
-            && latest > current;
+        var hasUpdate = IsNewer(tag, CurrentVersion);
         return new AppUpdateCheck(hasUpdate, CurrentVersion, tag, url, assetUrl, assetSha256);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="tag"/> names a release newer than <paramref name="current"/>.
+    ///
+    /// Normalised to three components before comparing, because Version treats a missing
+    /// component as "less than zero" rather than zero — so tag "v0.2" would read as older than
+    /// "0.2.0" and an update would be silently withheld. A pre-release or build suffix is
+    /// dropped rather than failing the parse, which would report "you are up to date" when the
+    /// truth is that the tag could not be read.
+    /// </summary>
+    internal static bool IsNewer(string tag, string current)
+    {
+        return Normalise(tag) is { } latestVersion
+            && Normalise(current) is { } currentVersion
+            && latestVersion > currentVersion;
+
+        static Version? Normalise(string value)
+        {
+            var text = value.Trim().TrimStart('v', 'V');
+            var cut = text.IndexOfAny(['-', '+']);
+            if (cut >= 0)
+            {
+                text = text[..cut];
+            }
+            if (!Version.TryParse(text, out var parsed))
+            {
+                return null;
+            }
+            return new Version(
+                parsed.Major,
+                parsed.Minor,
+                parsed.Build < 0 ? 0 : parsed.Build
+            );
+        }
     }
 
     /// <summary>

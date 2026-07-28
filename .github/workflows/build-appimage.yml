@@ -68,7 +68,11 @@ jobs:
           chmod +x scripts/build-appimage.sh packaging/WowWotlkAutoinstall.AppDir/AppRun
           scripts/build-appimage.sh
 
+      # Skipped for pull requests from forks: GitHub withholds the id-token there, so the step
+      # can only fail, and a red X on every outside contributor's PR teaches people to ignore
+      # CI. Releases are built from tags on this repo, where the token is available.
       - name: Attest build provenance
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v4.1.1
         with:
           subject-path: WowWotlkAutoinstall-x86_64.AppImage

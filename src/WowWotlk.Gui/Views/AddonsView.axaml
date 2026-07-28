@@ -54,6 +54,12 @@
             </StackPanel>
         </Border>
 
+        <!-- Outside the HasClient panel: the no-client message is only ever set when there is
+             no client, so inside it could never render. -->
+        <TextBlock Classes="data" IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                   Text="{Binding StatusMessage}" Foreground="{StaticResource FrostIce}"
+                   TextWrapping="Wrap"/>
+
         <StackPanel Spacing="22" IsVisible="{Binding HasClient}">
 
             <DockPanel>
@@ -62,10 +68,6 @@
                 <SelectableTextBlock Classes="data muted" VerticalAlignment="Center"
                                      Text="{Binding ClientRoot}" TextTrimming="CharacterEllipsis"/>
             </DockPanel>
-
-            <TextBlock Classes="data" IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                       Text="{Binding StatusMessage}" Foreground="{StaticResource FrostIce}"
-                       TextWrapping="Wrap"/>
 
             <!-- Catalog -->
             <StackPanel Spacing="10">

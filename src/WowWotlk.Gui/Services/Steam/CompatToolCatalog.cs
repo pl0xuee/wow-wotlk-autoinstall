@@ -73,7 +73,73 @@ public partial class CompatToolCatalog(IReadOnlyList<string>? wellKnownDirs = nu
                 );
             }
         }
+        tools.AddRange(ValveProtons(steamRoot).Where(v => !tools.Any(t => t.InternalName == v.InternalName)));
         return WotlkProton.Order(tools.DistinctBy(t => t.InternalName)).ToList();
+    }
+
+    /// <summary>
+    /// Valve's own Proton builds, which Steam installs as ordinary apps under
+    /// steamapps/common rather than into compatibilitytools.d.
+    ///
+    /// They carry a toolmanifest but no compatibilitytool.vdf, so a scan of only
+    /// compatibilitytools.d finds nothing on a machine that has Proton Experimental and no
+    /// GE build — and the Steam phase then refuses to run for want of a Proton, on a machine
+    /// with a working one. Steam names these in CompatToolMapping by the app's folder-derived
+    /// internal name, which is what the manifest directory is called.
+    /// </summary>
+    private static IEnumerable<CompatTool> ValveProtons(string? steamRoot)
+    {
+        if (steamRoot is null)
+        {
+            yield break;
+        }
+        foreach (var library in SteamLibraries.Enumerate(steamRoot))
+        {
+            var common = Path.Join(library, "steamapps", "common");
+            if (!System.IO.Directory.Exists(common))
+            {
+                continue;
+            }
+            string[] candidates;
+            try
+            {
+                candidates = System.IO.Directory.GetDirectories(common, "Proton*");
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                continue;
+            }
+            foreach (var toolDir in candidates)
+            {
+                if (!File.Exists(Path.Join(toolDir, "proton"))
+                    || !File.Exists(Path.Join(toolDir, "toolmanifest.vdf")))
+                {
+                    continue;
+                }
+                var display = Path.GetFileName(toolDir);
+                // "Proton - Experimental" is mapped as proton_experimental, "Proton 9.0" as
+                // proton_9. Lowercased, spaces and dashes collapsed to underscores, and the
+                // trailing ".0" dropped — that is the shape Steam writes.
+                var internalName = ValveInternalName(display);
+                yield return new CompatTool(
+                    internalName,
+                    display,
+                    toolDir,
+                    ReadRequiredRuntimeAppId(toolDir)
+                );
+            }
+        }
+    }
+
+    internal static string ValveInternalName(string displayName)
+    {
+        var name = displayName.Replace(" - ", " ").Replace('-', ' ').Trim();
+        if (name.EndsWith(".0", StringComparison.Ordinal))
+        {
+            name = name[..^2];
+        }
+        return string.Join('_', name.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            .ToLowerInvariant();
     }
 
     /// <summary>

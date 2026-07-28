@@ -14,4 +14,12 @@
   <ItemGroup>
     <ProjectReference Include="..\WowWotlk.Gui\WowWotlk.Gui.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- The real shipped catalog, so a test checks the file that actually ships rather than a
+         fixture that can drift away from it. -->
+    <None Include="..\WowWotlk.Gui\Assets\addon-catalog.json"
+          Link="addon-catalog.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

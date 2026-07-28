@@ -40,6 +40,13 @@ public class AddonScanner
             {
                 continue;
             }
+            // A dot-prefixed folder is not something the client loads; here it is the wreckage
+            // of an install that was interrupted between moving the old version aside and
+            // putting the new one in. Listing it would offer the user a phantom addon.
+            if (name.StartsWith('.'))
+            {
+                continue;
+            }
 
             string? title = null;
             string? version = null;

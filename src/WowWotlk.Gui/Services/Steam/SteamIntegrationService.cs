@@ -54,8 +54,39 @@ public class SteamIntegrationService(
         CancellationToken ct = default
     )
     {
+        var steamWasStopped = false;
+        try
+        {
+            await RunStepsAsync(ctx, report, () => steamWasStopped = true, ct);
+        }
+        catch (Exception) when (steamWasStopped)
+        {
+            // Step 1 writes the VDFs and can throw; without this the run ends with the user's
+            // Steam killed and never restarted, which reads as the app having closed Steam for
+            // no reason. Restarting is best-effort — the original failure is the one to report.
+            log.Append("Setup failed after Steam was shut down; starting it again.");
+            try
+            {
+                await steamProcess.StartAndWaitAsync(CancellationToken.None);
+            }
+            catch (Exception restart)
+            {
+                log.Append($"Could not restart Steam ({restart.Message}); start it yourself.");
+            }
+            throw;
+        }
+    }
+
+    private async Task RunStepsAsync(
+        SteamSetupContext ctx,
+        Action<int, StepState, string>? report,
+        Action onSteamStopped,
+        CancellationToken ct
+    )
+    {
         SteamShortcut shortcut = null!;
         await Step(0, () => steamProcess.ShutdownAsync(ct), report);
+        onSteamStopped();
         await Step(
             1,
             () =>
@@ -105,7 +136,23 @@ public class SteamIntegrationService(
             report
         );
         await Step(2, () => steamProcess.StartAndWaitAsync(ct), report);
-        await Step(3, () => prefixService.CreateAsync(ctx.Steam, ctx.Tool, shortcut.UnsignedAppId, ct), report);
+
+        // The prefix is a first-launch optimisation: Steam builds one itself the first time the
+        // shortcut is played. Failing the whole run over it would report a setup as broken when
+        // the shortcut and its compatibility tool — the parts that actually matter — are
+        // already written and working.
+        try
+        {
+            await Step(3, () => prefixService.CreateAsync(ctx.Steam, ctx.Tool, shortcut.UnsignedAppId, ct), report);
+        }
+        catch (Exception e) when (!ct.IsCancellationRequested)
+        {
+            log.Append(
+                $"Could not create the Proton prefix ({e.Message}). The shortcut is set up "
+                    + "regardless — Steam will build the prefix the first time you press Play."
+            );
+            report?.Invoke(3, StepState.Ok, "skipped — Steam will create it on first launch");
+        }
     }
 
     /// <summary>

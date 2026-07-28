@@ -22,7 +22,7 @@ public static class ClientLocator
         {
             return null;
         }
-        return Search(Path.GetFullPath(startDir), 0);
+        return Search(Path.GetFullPath(startDir), MaxDepth);
     }
 
     /// <summary>The full path to Wow.exe under <paramref name="startDir"/>, or null.</summary>
@@ -46,34 +46,45 @@ public static class ClientLocator
         }
     }
 
-    private static string? Search(string dir, int depth)
+    /// <summary>
+    /// Breadth-first, and by name within a level.
+    ///
+    /// Both parts matter. Shallowest-first means a real client at <c>&lt;dir&gt;/WoW/Wow.exe</c>
+    /// wins over an old copy at <c>&lt;dir&gt;/Backup/Old/Wow.exe</c>, which a depth-first walk
+    /// would reach first purely because "Backup" sorts earlier — and the install then writes
+    /// the realmlist into the backup and deletes its Cache. Sorting by name makes the answer
+    /// the same on every run rather than depending on filesystem enumeration order.
+    /// </summary>
+    private static string? Search(string root, int maxDepth)
     {
-        if (ExePathIn(dir) is not null)
+        var level = new List<string> { root };
+        for (var depth = 0; depth <= maxDepth && level.Count > 0; depth++)
         {
-            return dir;
-        }
-        if (depth >= MaxDepth)
-        {
-            return null;
-        }
-        string[] children;
-        try
-        {
-            children = Directory.GetDirectories(dir);
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            return null;
-        }
-        // Breadth-first by name so a deterministic answer comes back when a folder somehow
-        // holds two clients — depth-first would depend on filesystem enumeration order.
-        Array.Sort(children, StringComparer.Ordinal);
-        foreach (var child in children)
-        {
-            if (Search(child, depth + 1) is { } found)
+            foreach (var dir in level)
             {
-                return found;
+                if (ExePathIn(dir) is not null)
+                {
+                    return dir;
+                }
             }
+            if (depth == maxDepth)
+            {
+                break;
+            }
+            var next = new List<string>();
+            foreach (var dir in level)
+            {
+                try
+                {
+                    next.AddRange(Directory.GetDirectories(dir));
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                {
+                    // An unreadable folder simply contributes nothing to the next level.
+                }
+            }
+            next.Sort(StringComparer.Ordinal);
+            level = next;
         }
         return null;
     }

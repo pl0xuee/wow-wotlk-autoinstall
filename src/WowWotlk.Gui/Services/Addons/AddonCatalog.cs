@@ -17,13 +17,21 @@ public class AddonCatalog(LogService log)
     public CatalogAddon? ById(string id) =>
         Entries.FirstOrDefault(e => e.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Parses catalog JSON. Separate from loading it so the shipped file can be checked
+    /// without an Avalonia asset system — otherwise the only way to find out that a catalog
+    /// edit broke deserialization is a user opening the Addons page to an empty list.
+    /// </summary>
+    internal static List<CatalogAddon> Parse(string json) =>
+        JsonSerializer.Deserialize(json, AddonCatalogCtx.Default.ListCatalogAddon) ?? [];
+
     private IReadOnlyList<CatalogAddon> Read()
     {
         try
         {
             using var stream = AssetLoader.Open(new Uri(AssetUri));
-            return JsonSerializer.Deserialize(stream, AddonCatalogCtx.Default.ListCatalogAddon)
-                ?? [];
+            using var reader = new StreamReader(stream);
+            return Parse(reader.ReadToEnd());
         }
         catch (Exception e)
         {

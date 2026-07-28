@@ -1,5 +1,81 @@
 # Changelog
 
+## v0.1.1
+
+### One-click install
+
+**INSTALL EVERYTHING** now runs the whole thing: acquire the client, unpack it, write the
+realmlist, install addons, and add the shortcut to Steam. The phase track gained an ADDONS
+segment, and the Install page shows exactly which addons will be installed with a tick box for
+each. Seven additive ones are pre-ticked; ElvUI, Dominos, Immersion, Grid2 and CartoMapper are
+not, because they replace core parts of the interface and two of them conflict with each other.
+An addon that can't be fetched is skipped and reported — it never fails the install.
+
+### Data-loss fixes
+
+- **Steam's `config.vdf` could lose unrelated blocks.** Setting the compatibility tool ran an
+  unanchored search for the appid across the whole file, so it deleted any other section keyed
+  by the same non-Steam appid — `ShaderCacheManager` on a stock install. All edits are now
+  scoped to the `CompatToolMapping` block by brace matching.
+- **A second addon could delete the first.** The destination folder took its name from the
+  extractor's scratch directory, so any zip with its `.toc` at the archive root installed to
+  `Interface/AddOns/unpacked` — a folder the client never loads — and the next such zip
+  overwrote it. The name now comes from the `.toc`, which is what the client matches on.
+- **Addon records could collide and stop the app from starting.** Catalog ids and folder names
+  shared one namespace, so two records could claim the same folder; the Addons page indexed
+  folders by name and threw during startup, permanently, because the record file persisted.
+- An addon update that dropped or renamed a folder left the old one on disk, loaded by the
+  client at the old version and beyond the reach of Remove.
+- A failure partway through replacing a multi-folder addon is now rolled back rather than left
+  half-applied.
+- Steam shortcut artwork and launch options a user had set by hand are no longer overwritten.
+
+### Correctness fixes
+
+- Only the first `set realmlist` line was replaced, but WoW honours the last — a client with two
+  kept dialling the old server while the app reported success.
+- A backup client deeper in the install folder could beat the real one, and then had its `Cache`
+  deleted. The search is breadth-first now, so the shallowest client wins.
+- A single unrelated file in the download folder downgraded a hard disk-space failure to a
+  warning, letting an install start that then ran the disk dry. Space is measured in bytes
+  actually present now, not "is anything there".
+- A partial download longer than the real file was a permanent dead end (repeated HTTP 416); a
+  complete one at exactly the expected size was deleted and fetched again.
+- A zip you had already downloaded was deleted before the replacement was known to be fetchable.
+- Directory entries stored without a trailing slash became files and wedged the extract;
+  backslash-separated entries from Windows zip tools extracted as one flat filename.
+- Valve's own Proton builds were undiscoverable, so a machine with Proton Experimental and no
+  GE build failed the Steam phase for want of a Proton it had.
+- `pkill steam` matched any process with "steam" in its name — `steamcmd`, `steamtinkerlaunch`.
+  Anchored now.
+- Quitting Steam and immediately running setup could have the dying process overwrite the
+  freshly written shortcut.
+- A failed Steam step left Steam shut down and never restarted. Prefix creation is no longer
+  fatal — Steam builds one on first launch anyway.
+- A zero-byte `shortcuts.vdf` bricked the whole Steam feature.
+- One throwing event subscriber could wedge the operation runner for the life of the process,
+  refusing every later operation.
+
+### Interface fixes
+
+- The Install page froze during extraction — progress was posted to the UI thread once per
+  file, with input gaps up to 5.7 seconds. Sampled now, as the status bar already was.
+- The Install page could write its own stale folder and realm back over changes made on the
+  Settings page, sending the client to the wrong folder and the wrong realm.
+- Buttons stayed enabled while another operation was running, and the rejected click did nothing
+  at all — no message, no log line.
+- A failed install left the page reading "Starting…" over a half-lit phase track.
+- The Addons page's status line was cleared a moment after being set, so it never displayed.
+
+### Build
+
+- `appimagetool` pinned to 1.9.1 instead of the rolling `continuous` build, and the checksum is
+  now verified against a cached copy too rather than only on download.
+- The AppImage runtime — the code that actually executes on a user's machine — is pinned and
+  checksummed instead of fetched unverified at build time.
+- Release artifacts carry build provenance attestation, verifiable with `gh attestation verify`.
+- `X-AppImage-Version` is stamped from the build version rather than hardcoded.
+
 ## v0.1.0
 
 First release.
