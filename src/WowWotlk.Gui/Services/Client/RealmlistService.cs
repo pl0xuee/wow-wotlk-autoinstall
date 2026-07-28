@@ -97,8 +97,12 @@ public partial class RealmlistService(LogService log)
     }
 
     /// <summary>
-    /// Strips a scheme, port or stray quoting a user may have pasted in. The client wants a
-    /// bare host or IP; anything else silently fails to connect with no message.
+    /// Strips a scheme, a trailing path and stray quoting a user may have pasted in.
+    ///
+    /// A port is kept. The client reads <c>host:port</c> and only falls back to 3724 when no
+    /// port is given, and private servers routinely run the logon server somewhere else — so
+    /// dropping it produces a client that looks correctly configured and silently fails to
+    /// connect, which is the hardest kind of wrong to diagnose.
     /// </summary>
     internal static string Normalise(string serverAddress)
     {
@@ -110,14 +114,13 @@ public partial class RealmlistService(LogService log)
                 value = value[scheme.Length..];
             }
         }
-        // Trailing path and port are not part of a realmlist entry. IPv6 is not supported by
-        // a 2010 client, so a lone colon is always a port.
-        var cut = value.IndexOfAny([':', '/']);
-        if (cut >= 0)
+        // A path is not part of a realmlist entry; a port is.
+        var slash = value.IndexOf('/');
+        if (slash >= 0)
         {
-            value = value[..cut];
+            value = value[..slash];
         }
-        return value.Length == 0 ? "127.0.0.1" : value;
+        return value.Length == 0 ? "127.0.0.1" : value.Trim();
     }
 
     /// <summary>

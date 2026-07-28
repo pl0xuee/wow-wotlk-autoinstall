@@ -117,7 +117,12 @@ public class RealmlistServiceTests
     [InlineData("\"wow.lan\"", "wow.lan")]
     [InlineData("http://wow.lan", "wow.lan")]
     [InlineData("https://wow.lan/realm", "wow.lan")]
-    [InlineData("wow.lan:3724", "wow.lan")]
+    // A port is part of the address, not noise: WoW only defaults to 3724 when none is given,
+    // and a private server on another port is the normal case.
+    [InlineData("wow.lan:3724", "wow.lan:3724")]
+    [InlineData("209.25.140.23:1170", "209.25.140.23:1170")]
+    [InlineData("http://209.25.140.23:1170", "209.25.140.23:1170")]
+    [InlineData("209.25.140.23:1170/realm", "209.25.140.23:1170")]
     [InlineData("", "127.0.0.1")]
     public void Normalises_what_a_user_pastes_in(string input, string expected) =>
         Assert.Equal(expected, RealmlistService.Normalise(input));

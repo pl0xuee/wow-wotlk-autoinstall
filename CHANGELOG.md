@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.3
+
+- **The realmlist no longer loses the port.** `209.25.140.23:1170` was written as
+  `209.25.140.23`, so the client fell back to the default 3724 and silently failed to connect —
+  a client that looks correctly configured and simply doesn't work. A port is part of a
+  realmlist entry; only a scheme and a trailing path are stripped now.
+
 ## v0.1.2
 
 - **Updating now restarts the app into the new version.** It used to swap the AppImage and
