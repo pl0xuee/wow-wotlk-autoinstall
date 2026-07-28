@@ -72,19 +72,38 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- The counter is the value a user watches for an hour, so it gets the size.
-                     The detail line under it names what is being moved right now. -->
-                <StackPanel Spacing="3" IsVisible="{Binding IsRunning}">
-                    <TextBlock Text="{Binding PhaseCounter}" FontFamily="monospace" FontSize="30"
-                               FontWeight="Light" Foreground="{StaticResource FrostText}"/>
-                    <TextBlock Text="{Binding PhaseDetail}" Classes="data muted"
-                               TextTrimming="CharacterEllipsis"/>
-                    <ProgressBar Minimum="0" Maximum="1" Height="4" Margin="0,7,0,0"
-                                 Value="{Binding PhaseFraction}"/>
-                </StackPanel>
+                <!-- The action sits with the track it drives, at the top of the page: this is
+                     one button that does the whole thing, and it should not be findable only
+                     by scrolling past every setting it happens to use. -->
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <!-- The counter is the value a user watches for an hour, so it gets the
+                             size. The detail line under it names what is moving right now. -->
+                        <StackPanel Spacing="3" IsVisible="{Binding IsRunning}">
+                            <TextBlock Text="{Binding PhaseCounter}" FontFamily="monospace"
+                                       FontSize="30" FontWeight="Light"
+                                       Foreground="{StaticResource FrostText}"/>
+                            <TextBlock Text="{Binding PhaseDetail}" Classes="data muted"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <ProgressBar Minimum="0" Maximum="1" Height="4" Margin="0,7,0,0"
+                                         Value="{Binding PhaseFraction}"/>
+                        </StackPanel>
+                        <StackPanel Spacing="3" IsVisible="{Binding !IsRunning}">
+                            <TextBlock Classes="muted" TextWrapping="Wrap"
+                                       Text="{Binding PhaseDetail}"/>
+                            <TextBlock Classes="data muted" TextTrimming="CharacterEllipsis"
+                                       IsVisible="{Binding InstalledClientRoot, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                       Text="{Binding InstalledClientRoot, StringFormat='Installed at {0}'}"/>
+                        </StackPanel>
+                    </StackPanel>
 
-                <TextBlock IsVisible="{Binding !IsRunning}" Classes="muted" TextWrapping="Wrap"
-                           Text="{Binding PhaseDetail}"/>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="6">
+                        <Button Classes="accent" Content="INSTALL EVERYTHING" MinWidth="215"
+                                Command="{Binding InstallCommand}" IsEnabled="{Binding CanInstall}"/>
+                        <TextBlock Classes="muted" FontSize="11" TextAlignment="Center"
+                                   Text="Client · realm · addons · Steam"/>
+                    </StackPanel>
+                </Grid>
             </StackPanel>
         </Border>
 
@@ -254,13 +273,7 @@
             </Border>
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal" Spacing="18" Margin="0,2,0,10">
-            <Button Classes="accent" Content="INSTALL EVERYTHING"
-                    Command="{Binding InstallCommand}" IsEnabled="{Binding CanInstall}"/>
-            <TextBlock VerticalAlignment="Center" Classes="data muted"
-                       IsVisible="{Binding InstalledClientRoot, Converter={x:Static ObjectConverters.IsNotNull}}"
-                       Text="{Binding InstalledClientRoot, StringFormat='Installed at {0}'}"
-                       TextTrimming="CharacterEllipsis"/>
-        </StackPanel>
+        <!-- Bottom padding so the last card clears the status bar when scrolled to the end. -->
+        <Rectangle Height="4" Fill="Transparent"/>
     </StackPanel>
 </UserControl>
