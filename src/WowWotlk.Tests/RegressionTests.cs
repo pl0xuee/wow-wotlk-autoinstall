@@ -563,6 +563,21 @@ public class SelfUpdateRestartTests
             .BuildServiceProvider()
             .GetRequiredService<System.Net.Http.IHttpClientFactory>());
 
+    /// <summary>
+    /// chmod +x, guarded for the analyzer. These tests are Linux-only by nature — the thing
+    /// under test spawns /bin/sh — but the call site still has to say so.
+    /// </summary>
+    private static void MakeExecutable(string path)
+    {
+        if (OperatingSystem.IsLinux())
+        {
+            File.SetUnixFileMode(
+                path,
+                UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+            );
+        }
+    }
+
     [Fact]
     public void Relaunch_refuses_a_path_that_is_not_there()
     {
@@ -586,10 +601,7 @@ public class SelfUpdateRestartTests
         var marker = temp.Join("started.txt");
         var script = temp.Join("fake.AppImage");
         File.WriteAllText(script, $"#!/bin/sh\nsleep 0.2\necho \"$$\" > \"{marker}\"\n");
-        File.SetUnixFileMode(
-            script,
-            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
-        );
+        MakeExecutable(script);
 
         Assert.True(NewService().TryRelaunch(script));
 
@@ -615,10 +627,7 @@ public class SelfUpdateRestartTests
             $"#!/bin/sh\n{{ echo \"APPIMAGE=[$APPIMAGE]\"; echo \"APPDIR=[$APPDIR]\"; "
                 + $"echo \"LD_LIBRARY_PATH=[$LD_LIBRARY_PATH]\"; }} > \"{dump}\"\n"
         );
-        File.SetUnixFileMode(
-            script,
-            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
-        );
+        MakeExecutable(script);
         Environment.SetEnvironmentVariable("APPIMAGE", "/old/mount/App.AppImage");
         Environment.SetEnvironmentVariable("APPDIR", "/tmp/.mount_old");
         Environment.SetEnvironmentVariable("LD_LIBRARY_PATH", "/tmp/.mount_old/usr/lib");
@@ -653,10 +662,7 @@ public class SelfUpdateRestartTests
         Directory.CreateDirectory(dir);
         var script = Path.Join(dir, "My App.AppImage");
         File.WriteAllText(script, $"#!/bin/sh\ntouch \"{marker}\"\n");
-        File.SetUnixFileMode(
-            script,
-            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
-        );
+        MakeExecutable(script);
 
         Assert.True(NewService().TryRelaunch(script));
 
