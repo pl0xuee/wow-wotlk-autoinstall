@@ -119,6 +119,10 @@ public partial class WowConfigService(LogService log)
         {
             values[key] = value;
         }
+        foreach (var (key, value) in AddedDefaults)
+        {
+            values[key] = value;
+        }
         return values;
     }
 
@@ -137,6 +141,11 @@ public partial class WowConfigService(LogService log)
     ///
     /// TerrainDetail is the one level-5 entry with no directive here: its slider calls
     /// SetTerrainMip() rather than setting a cvar, so it is not a Config.wtf value at all.
+    ///
+    /// particleDensity, BaseMip, ffxGlow and ffxDeath already match the client's built-in
+    /// defaults — it drops all four when it rewrites the file, which is how we know. Writing
+    /// them is therefore redundant on a stock client and the point of doing it anyway: a repack
+    /// that ships different defaults still lands on the preset.
     /// </summary>
     internal static readonly Dictionary<string, string> QualityPreset =
         new(StringComparer.OrdinalIgnoreCase)
@@ -155,6 +164,25 @@ public partial class WowConfigService(LogService log)
             ["ffxGlow"] = "1", // FullScreenGlow
             ["ffxDeath"] = "1", // DeathEffect
             ["projectedTextures"] = "1", // ProjectedTextures
+        };
+
+    /// <summary>
+    /// The two settings the client's own preset table does not reach.
+    ///
+    /// gxMultisample is anti-aliasing, which lives on the resolution panel rather than the
+    /// effects panel, so GraphicsQualityLevels.lua never mentions it and the client's Ultra
+    /// leaves it off. 4x costs a 2010 D3D9 game nothing on hardware that can run this installer.
+    ///
+    /// gxCursor "0" asks for a software cursor. This is not taste: every install here runs under
+    /// Proton by definition, and the hardware cursor is the long-standing cause of cursor lag and
+    /// a cursor that does not line up with what it clicks. Leaving it on means each user finds
+    /// the same fix for themselves.
+    /// </summary>
+    internal static readonly Dictionary<string, string> AddedDefaults =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["gxMultisample"] = "4",
+            ["gxCursor"] = "0",
         };
 
     /// <summary>

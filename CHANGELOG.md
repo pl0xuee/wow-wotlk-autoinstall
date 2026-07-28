@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.9
+
+- **A software cursor by default.** `gxCursor "0"`, because everything this installs runs under
+  Proton and the hardware cursor is the long-standing cause of cursor lag and a pointer that does
+  not line up with what it clicks. Left alone, every user finds the same fix for themselves.
+- **4x anti-aliasing by default.** `gxMultisample "4"`. The client's own Ultra preset never sets
+  it — anti-aliasing lives on the resolution panel rather than the effects panel, so
+  `GraphicsQualityLevels.lua` does not describe it — and it costs a 2010 D3D9 game nothing on
+  hardware that can run this installer.
+- Both apply only to a client nobody has played, on the same terms as the graphics preset: an
+  install with settings of its own keeps them.
+
 ## v0.1.8
 
 - **The chosen resolution now actually reaches the game.** It was written into `WTF/Config.wtf`

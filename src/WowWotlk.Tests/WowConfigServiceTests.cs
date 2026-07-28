@@ -124,6 +124,20 @@ public class WowConfigServiceTests
     }
 
     [Fact]
+    public void Fills_the_two_gaps_the_clients_own_preset_leaves()
+    {
+        // Anti-aliasing is on the resolution panel rather than the effects panel, so the client's
+        // Ultra never sets it. The software cursor is a Proton fix, and every install here runs
+        // under Proton — leaving it off means each user rediscovers the same fix.
+        using var temp = new TempDir();
+
+        var text = File.ReadAllText(NewService().Apply(temp.Path, Fullscreen(1920, 1080)));
+
+        Assert.Contains("SET gxMultisample \"4\"", text);
+        Assert.Contains("SET gxCursor \"0\"", text);
+    }
+
+    [Fact]
     public void Leaves_the_graphics_settings_of_an_install_someone_has_played()
     {
         // hwDetect "0" in the file is the client's own record that it has completed a launch, so
@@ -141,6 +155,9 @@ public class WowConfigServiceTests
         Assert.DoesNotContain("1277", text);
         Assert.Contains("SET gxResolution \"2560x1440\"", text);
         Assert.Contains("SET hwDetect \"0\"", text);
+        // Anti-aliasing and the cursor are ours to choose only before anyone has played.
+        Assert.DoesNotContain("gxMultisample", text);
+        Assert.DoesNotContain("gxCursor", text);
     }
 
     [Theory]

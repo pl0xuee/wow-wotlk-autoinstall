@@ -540,8 +540,8 @@ public partial class InstallViewModel : ViewModelBase
                     + $"{SelectedResolution?.Value} will be used instead.",
             _ => "Written to WTF/Config.wtf, so the first launch is already the right size. "
                 + "Only modes your displays report are listed. A client nobody has played yet "
-                + "also gets the game's own Ultra preset; one you have played keeps its "
-                + "graphics settings.",
+                + "also gets the game's own Ultra preset, 4x anti-aliasing and a software "
+                + "cursor; one you have played keeps its graphics settings.",
         };
     }
 
