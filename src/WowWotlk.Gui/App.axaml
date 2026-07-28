@@ -1,0 +1,241 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="WowWotlk.Gui.App"
+             xmlns:local="using:WowWotlk.Gui"
+             RequestedThemeVariant="Dark">
+
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <Application.Resources>
+        <!-- Northrend night: deep blue-slate rather than black, so the ice reads as cold
+             against something, not as a lone accent on a void. -->
+        <Color x:Key="FrostBgColor">#0B1017</Color>
+        <Color x:Key="FrostPanelColor">#111A24</Color>
+        <Color x:Key="FrostCardColor">#16212D</Color>
+        <Color x:Key="FrostHairlineColor">#243545</Color>
+        <Color x:Key="FrostTextColor">#DDE7EE</Color>
+        <Color x:Key="FrostMutedColor">#7C93A6</Color>
+
+        <SolidColorBrush x:Key="FrostBg" Color="{StaticResource FrostBgColor}"/>
+        <SolidColorBrush x:Key="FrostPanel" Color="{StaticResource FrostPanelColor}"/>
+        <SolidColorBrush x:Key="FrostCard" Color="{StaticResource FrostCardColor}"/>
+        <SolidColorBrush x:Key="FrostHairline" Color="{StaticResource FrostHairlineColor}"/>
+        <SolidColorBrush x:Key="FrostText" Color="{StaticResource FrostTextColor}"/>
+        <SolidColorBrush x:Key="FrostMuted" Color="{StaticResource FrostMutedColor}"/>
+
+        <!-- Status is reported in WoW's own item-quality scale. Every player reads it
+             fluently, so a green check and an orange warning need no legend: uncommon green
+             passes, legendary orange warns, rare blue is the active/accent state and heirloom
+             gold marks the app's own chrome. Red is the one addition — WoW has no "broken"
+             quality, and gray would read as merely unimportant. -->
+        <Color x:Key="QualityUncommonColor">#1EFF00</Color>
+        <Color x:Key="QualityRareColor">#0070DD</Color>
+        <Color x:Key="QualityEpicColor">#A335EE</Color>
+        <Color x:Key="QualityLegendaryColor">#FF8000</Color>
+        <Color x:Key="QualityHeirloomColor">#E6CC80</Color>
+
+        <SolidColorBrush x:Key="QualityUncommon" Color="{StaticResource QualityUncommonColor}"/>
+        <SolidColorBrush x:Key="QualityLegendary" Color="{StaticResource QualityLegendaryColor}"/>
+        <SolidColorBrush x:Key="QualityEpic" Color="{StaticResource QualityEpicColor}"/>
+        <SolidColorBrush x:Key="QualityHeirloom" Color="{StaticResource QualityHeirloomColor}"/>
+        <SolidColorBrush x:Key="StateFail" Color="#E0483C"/>
+
+        <!-- Rare blue is #0070DD in game; on a dark panel it needs lifting to stay legible as
+             text and as a thin 1px rule. Fills keep the canon value. -->
+        <SolidColorBrush x:Key="FrostIce" Color="#3B9BF0"/>
+        <SolidColorBrush x:Key="FrostIceBright" Color="#71BCFF"/>
+        <SolidColorBrush x:Key="FrostIceDeep" Color="{StaticResource QualityRareColor}"/>
+
+        <!-- Fluent accent → rare blue (checkboxes, radios, progress bars, selection) -->
+        <Color x:Key="SystemAccentColor">#3B9BF0</Color>
+        <Color x:Key="SystemAccentColorDark1">#2C82D4</Color>
+        <Color x:Key="SystemAccentColorDark2">#0070DD</Color>
+        <Color x:Key="SystemAccentColorDark3">#005CB4</Color>
+        <Color x:Key="SystemAccentColorLight1">#71BCFF</Color>
+        <Color x:Key="SystemAccentColorLight2">#9BD1FF</Color>
+        <Color x:Key="SystemAccentColorLight3">#C5E5FF</Color>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{StaticResource FrostBg}"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostText}"/>
+        </Style>
+
+        <!-- Page header: tracked uppercase eyebrow over the title -->
+        <Style Selector="TextBlock.eyebrow">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="LetterSpacing" Value="4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostIce}"/>
+        </Style>
+        <Style Selector="TextBlock.h1">
+            <Setter Property="FontSize" Value="27"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostText}"/>
+        </Style>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="LetterSpacing" Value="3"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostMuted}"/>
+        </Style>
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Foreground" Value="{StaticResource FrostMuted}"/>
+        </Style>
+
+        <!-- One rule, applied everywhere: if it is a machine value — a path, a byte count, a
+             realmlist address, a ## Interface number — it is monospace. -->
+        <Style Selector="TextBlock.data">
+            <Setter Property="FontFamily" Value="monospace"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style Selector="SelectableTextBlock.data">
+            <Setter Property="FontFamily" Value="monospace"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style Selector="TextBox.data">
+            <Setter Property="FontFamily" Value="monospace"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{StaticResource FrostCard}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource FrostHairline}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+
+        <!-- Fluent styles the inner ContentPresenter, so every state has to be set there or
+             the theme's own colours win and the label loses contrast. -->
+        <Style Selector="Button.accent">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="26,12"/>
+        </Style>
+        <Style Selector="Button.accent /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource FrostIceDeep}"/>
+            <Setter Property="Foreground" Value="#F2FAFF"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="2"/>
+        </Style>
+        <Style Selector="Button.accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource FrostIce}"/>
+            <Setter Property="Foreground" Value="#F2FAFF"/>
+        </Style>
+        <Style Selector="Button.accent:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#005CB4"/>
+            <Setter Property="Foreground" Value="#F2FAFF"/>
+        </Style>
+        <Style Selector="Button.accent:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1C2937"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostMuted}"/>
+        </Style>
+
+        <!-- Quiet button for pickers and secondary actions -->
+        <Style Selector="Button.ghost /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{StaticResource FrostHairline}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="2"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostText}"/>
+        </Style>
+        <Style Selector="Button.ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1C2937"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostText}"/>
+        </Style>
+
+        <!-- Status glyphs, in the quality scale. ○ pending · ◈ running · ✦ ok · ! warn · ✕ fail -->
+        <Style Selector="TextBlock.glyph">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostMuted}"/>
+        </Style>
+        <Style Selector="TextBlock.glyph.running">
+            <Setter Property="Foreground" Value="{StaticResource FrostIce}"/>
+        </Style>
+        <Style Selector="TextBlock.glyph.ok">
+            <Setter Property="Foreground" Value="{StaticResource QualityUncommon}"/>
+        </Style>
+        <Style Selector="TextBlock.glyph.warn">
+            <Setter Property="Foreground" Value="{StaticResource QualityLegendary}"/>
+        </Style>
+        <Style Selector="TextBlock.glyph.fail">
+            <Setter Property="Foreground" Value="{StaticResource StateFail}"/>
+        </Style>
+
+        <!-- Rail navigation. The selected item is marked by a rare-blue edge rather than a
+             filled block, so the rail stays quiet next to the quality colours on the page. -->
+        <Style Selector="ListBox.nav">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem">
+            <Setter Property="Padding" Value="17,12"/>
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem TextBlock.nav-label">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="LetterSpacing" Value="3"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostMuted}"/>
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem TextBlock.nav-icon">
+            <Setter Property="Foreground" Value="{StaticResource FrostMuted}"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:selected TextBlock.nav-label">
+            <Setter Property="Foreground" Value="{StaticResource FrostText}"/>
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:selected TextBlock.nav-icon">
+            <Setter Property="Foreground" Value="{StaticResource FrostIce}"/>
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#182534"/>
+            <Setter Property="BorderBrush" Value="{StaticResource FrostIce}"/>
+            <Setter Property="BorderThickness" Value="2,0,0,0"/>
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#16212D"/>
+        </Style>
+
+        <Style Selector="DataGrid">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{StaticResource FrostHairline}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource FrostHairline}"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="RowHeight" Value="38"/>
+        </Style>
+        <Style Selector="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource FrostPanel}"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostMuted}"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <!-- Tight enough that a header like CATEGORY isn't clipped by the sort-indicator reserve. -->
+            <Setter Property="Padding" Value="9,7"/>
+        </Style>
+
+        <Style Selector="ListBox.log">
+            <Setter Property="Background" Value="#070C11"/>
+            <Setter Property="FontFamily" Value="monospace"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#9FBACD"/>
+        </Style>
+        <Style Selector="ListBox.log ListBoxItem">
+            <Setter Property="Padding" Value="12,1"/>
+            <Setter Property="MinHeight" Value="0"/>
+        </Style>
+
+        <Style Selector="TextBox">
+            <Setter Property="CornerRadius" Value="2"/>
+        </Style>
+    </Application.Styles>
+</Application>

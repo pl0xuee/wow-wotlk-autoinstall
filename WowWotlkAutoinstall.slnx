@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WowWotlk.Gui/WowWotlk.Gui.csproj" />
+    <Project Path="src/WowWotlk.Tests/WowWotlk.Tests.csproj" />
+  </Folder>
+</Solution>

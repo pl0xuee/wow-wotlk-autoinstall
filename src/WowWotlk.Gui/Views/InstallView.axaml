@@ -1,0 +1,222 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WowWotlk.Gui.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="880" d:DesignHeight="900"
+             x:Class="WowWotlk.Gui.Views.InstallView"
+             x:DataType="vm:InstallViewModel">
+
+    <UserControl.Styles>
+        <!-- Phase track. A segment is a label over a 2px rule; the rule carries the state so
+             the labels stay one weight and the eye tracks the line, not the text. -->
+        <Style Selector="TextBlock.phase">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="LetterSpacing" Value="2"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostMuted}"/>
+        </Style>
+        <Style Selector="TextBlock.phase.active">
+            <Setter Property="Foreground" Value="{StaticResource FrostIceBright}"/>
+        </Style>
+        <Style Selector="TextBlock.phase.done">
+            <Setter Property="Foreground" Value="{StaticResource QualityUncommon}"/>
+        </Style>
+        <Style Selector="Rectangle.rule">
+            <Setter Property="Height" Value="2"/>
+            <Setter Property="Fill" Value="{StaticResource FrostHairline}"/>
+        </Style>
+        <Style Selector="Rectangle.rule.active">
+            <Setter Property="Fill" Value="{StaticResource FrostIceBright}"/>
+        </Style>
+        <Style Selector="Rectangle.rule.done">
+            <Setter Property="Fill" Value="{StaticResource QualityUncommon}"/>
+        </Style>
+        <Style Selector="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource FrostText}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="22" MaxWidth="880" HorizontalAlignment="Stretch">
+
+        <!-- Header -->
+        <StackPanel Spacing="4">
+            <TextBlock Classes="eyebrow" Text="WRATH OF THE LICH KING"/>
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Classes="data" Text="3.3.5a · 12340"
+                           Foreground="{StaticResource QualityHeirloom}" VerticalAlignment="Bottom"/>
+                <TextBlock Classes="h1" Text="Install the client"/>
+            </DockPanel>
+        </StackPanel>
+
+        <!-- Phase track: the page's centre of gravity during a run -->
+        <Border Classes="card" Padding="20,18">
+            <StackPanel Spacing="16">
+                <ItemsControl ItemsSource="{Binding Phases}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PhaseSegment">
+                            <StackPanel Spacing="7" Margin="0,0,10,0">
+                                <TextBlock Classes="phase" Text="{Binding Name}"
+                                           Classes.active="{Binding IsActive}"
+                                           Classes.done="{Binding IsDone}"/>
+                                <Rectangle Classes="rule"
+                                           Classes.active="{Binding IsActive}"
+                                           Classes.done="{Binding IsDone}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- The counter is the value a user watches for an hour, so it gets the size.
+                     The detail line under it names what is being moved right now. -->
+                <StackPanel Spacing="3" IsVisible="{Binding IsRunning}">
+                    <TextBlock Text="{Binding PhaseCounter}" FontFamily="monospace" FontSize="30"
+                               FontWeight="Light" Foreground="{StaticResource FrostText}"/>
+                    <TextBlock Text="{Binding PhaseDetail}" Classes="data muted"
+                               TextTrimming="CharacterEllipsis"/>
+                    <ProgressBar Minimum="0" Maximum="1" Height="4" Margin="0,7,0,0"
+                                 Value="{Binding PhaseFraction}"/>
+                </StackPanel>
+
+                <TextBlock IsVisible="{Binding !IsRunning}" Classes="muted" TextWrapping="Wrap"
+                           Text="{Binding PhaseDetail}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Source -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="CLIENT SOURCE"/>
+            <Border Classes="card">
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="26">
+                        <RadioButton GroupName="src" Content="Google Drive" IsChecked="{Binding SourceIsDrive}"/>
+                        <RadioButton GroupName="src" Content="Zip on disk" IsChecked="{Binding SourceIsZip}"/>
+                        <RadioButton GroupName="src" Content="Folder already unpacked" IsChecked="{Binding SourceIsFolder}"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="3" IsVisible="{Binding SourceIsDrive}">
+                        <StackPanel Spacing="3" IsVisible="{Binding HasDriveFileId}">
+                            <TextBlock Classes="data" Text="{Binding DriveFileId}"
+                                       Foreground="{StaticResource FrostText}"/>
+                            <TextBlock Classes="data muted" Text="Resumes where it left off if interrupted."/>
+                        </StackPanel>
+                        <!-- The app ships without a file id: the client zip is the user's own
+                             upload, not something this repo can carry. Say where to put it. -->
+                        <TextBlock IsVisible="{Binding !HasDriveFileId}" Classes="muted"
+                                   TextWrapping="Wrap"
+                                   Text="No Google Drive file id set yet. Put the share link's id on the Settings page — it's the long code between /d/ and /view in the link."/>
+                    </StackPanel>
+
+                    <DockPanel IsVisible="{Binding SourceIsZip}">
+                        <Button DockPanel.Dock="Right" Classes="ghost" Content="Choose zip…"
+                                Margin="10,0,0,0" Command="{Binding PickZipCommand}"/>
+                        <TextBox Classes="data" Text="{Binding LocalZipPath}"
+                                 PlaceholderText="Path to World of Warcraft 3.3.5a.zip"/>
+                    </DockPanel>
+
+                    <DockPanel IsVisible="{Binding SourceIsFolder}">
+                        <Button DockPanel.Dock="Right" Classes="ghost" Content="Choose folder…"
+                                Margin="10,0,0,0" Command="{Binding PickClientFolderCommand}"/>
+                        <TextBox Classes="data" Text="{Binding ExistingClientPath}"
+                                 PlaceholderText="Folder containing Wow.exe"/>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Folders -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="FOLDERS"/>
+            <Grid ColumnDefinitions="*,16,*">
+                <Border Grid.Column="0" Classes="card">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="muted" FontSize="12" Text="Install the client to"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="ghost" Content="…"
+                                    Padding="12,5" Margin="8,0,0,0"
+                                    Command="{Binding PickInstallDirCommand}"/>
+                            <TextBox Classes="data" Text="{Binding InstallDir}"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Classes="card" IsEnabled="{Binding SourceIsDrive}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="muted" FontSize="12" Text="Download the zip to"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="ghost" Content="…"
+                                    Padding="12,5" Margin="8,0,0,0"
+                                    Command="{Binding PickDownloadDirCommand}"/>
+                            <TextBox Classes="data" Text="{Binding DownloadDir}"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+
+        <!-- Realm. Labelled with the exact token written to realmlist.wtf, so the field
+             teaches what the app does to the client. -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="REALM"/>
+            <Border Classes="card">
+                <StackPanel Spacing="10">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Classes="data" Text="set realmlist" VerticalAlignment="Center"
+                                   Foreground="{StaticResource QualityHeirloom}"/>
+                        <TextBox Classes="data" Width="280" Text="{Binding ServerAddress}"
+                                 PlaceholderText="127.0.0.1"/>
+                    </StackPanel>
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                               Text="Written to every realmlist.wtf the client has. Use 127.0.0.1 for a server on this machine, or the LAN address of the box running it."/>
+                    <CheckBox Content="Add the client to Steam when the install finishes"
+                              IsChecked="{Binding SetupSteamAfterInstall}"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Preflight -->
+        <StackPanel Spacing="10">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="ghost" Content="Re-check" Padding="12,4"
+                        Command="{Binding RefreshChecksCommand}"/>
+                <TextBlock Classes="section" Text="PREFLIGHT" VerticalAlignment="Center"/>
+            </DockPanel>
+            <Border Classes="card" Padding="16,10">
+                <StackPanel>
+                    <TextBlock Classes="muted" Text="Checking…" IsVisible="{Binding IsCheckingPreflight}"
+                               Margin="0,6"/>
+                    <ItemsControl ItemsSource="{Binding Checks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CheckRow">
+                                <Grid ColumnDefinitions="26,150,*" Margin="0,7">
+                                    <TextBlock Grid.Column="0" Classes="glyph" Text="{Binding Glyph}"
+                                               Classes.ok="{Binding IsOk}"
+                                               Classes.warn="{Binding IsWarn}"
+                                               Classes.fail="{Binding IsFail}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                               FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding Detail}"
+                                               Classes="data muted" TextWrapping="Wrap"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="18" Margin="0,2,0,10">
+            <Button Classes="accent" Content="INSTALL CLIENT"
+                    Command="{Binding InstallCommand}" IsEnabled="{Binding CanInstall}"/>
+            <TextBlock VerticalAlignment="Center" Classes="data muted"
+                       IsVisible="{Binding InstalledClientRoot, Converter={x:Static ObjectConverters.IsNotNull}}"
+                       Text="{Binding InstalledClientRoot, StringFormat='Installed at {0}'}"
+                       TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

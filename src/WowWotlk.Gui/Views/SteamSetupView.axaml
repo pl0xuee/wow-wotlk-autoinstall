@@ -1,0 +1,116 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WowWotlk.Gui.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="880" d:DesignHeight="820"
+             x:Class="WowWotlk.Gui.Views.SteamSetupView"
+             x:DataType="vm:SteamSetupViewModel">
+
+    <StackPanel Spacing="22" MaxWidth="880" HorizontalAlignment="Stretch">
+
+        <!-- Header -->
+        <StackPanel Spacing="4">
+            <TextBlock Classes="eyebrow" Text="LAUNCH INTEGRATION"/>
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Classes="data" Text="non-Steam shortcut"
+                           Foreground="{StaticResource QualityHeirloom}" VerticalAlignment="Bottom"/>
+                <TextBlock Classes="h1" Text="Add the client to Steam"/>
+            </DockPanel>
+            <TextBlock Classes="muted" TextWrapping="Wrap" Margin="0,6,0,0"
+                       Text="Writes the shortcut, points it at a Proton build and creates its prefix, so the client launches from your library like any other game. The install page does this for you — use this page to add the entry later, or to repair one that stopped working."/>
+        </StackPanel>
+
+        <!-- Shortcut: the two values that end up in Steam's own files -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="SHORTCUT"/>
+            <Border Classes="card">
+                <StackPanel Spacing="14">
+                    <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,12,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="muted" FontSize="12"
+                                   Text="Name" VerticalAlignment="Center"/>
+                        <SelectableTextBlock Grid.Row="0" Grid.Column="1" Classes="data"
+                                             Text="{Binding ShortcutName}"
+                                             Foreground="{StaticResource QualityHeirloom}"
+                                             VerticalAlignment="Center"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Classes="muted" FontSize="12"
+                                   Text="Proton" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="2" Grid.Column="1" MinWidth="300"
+                                  HorizontalAlignment="Left" FontFamily="monospace" FontSize="13"
+                                  ItemsSource="{Binding ProtonBuilds}"
+                                  SelectedItem="{Binding SelectedProton}"
+                                  PlaceholderText="No Proton build found"/>
+                    </Grid>
+
+                    <TextBlock Classes="data muted" TextWrapping="Wrap" Text="{Binding ProtonDetail}"/>
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                               Text="The name is fixed: it is what a re-run matches on, so changing it would leave you with two entries. Choosing a Proton build here also sets it for the install page."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Requirements -->
+        <StackPanel Spacing="10">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="ghost" Content="Re-check" Padding="12,4"
+                        IsEnabled="{Binding !IsBusy}" Command="{Binding RefreshCommand}"/>
+                <TextBlock Classes="section" Text="REQUIREMENTS" VerticalAlignment="Center"/>
+            </DockPanel>
+            <Border Classes="card" Padding="16,10">
+                <StackPanel>
+                    <TextBlock Classes="muted" Text="Checking…" Margin="0,6"
+                               IsVisible="{Binding IsChecking}"/>
+                    <ItemsControl ItemsSource="{Binding Checks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CheckRow">
+                                <Grid ColumnDefinitions="26,150,*" Margin="0,7">
+                                    <TextBlock Grid.Column="0" Classes="glyph" Text="{Binding Glyph}"
+                                               Classes.ok="{Binding IsOk}"
+                                               Classes.warn="{Binding IsWarn}"
+                                               Classes.fail="{Binding IsFail}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                               FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding Detail}"
+                                               Classes="data muted" TextWrapping="Wrap"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Steps. Pending rows stay visible so the page says up front what it is about to do. -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="STEPS"/>
+            <Border Classes="card" Padding="16,10">
+                <ItemsControl ItemsSource="{Binding Steps}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:StepRow">
+                            <Grid ColumnDefinitions="26,280,*" Margin="0,7">
+                                <TextBlock Grid.Column="0" Classes="glyph" Text="{Binding Glyph}"
+                                           Classes.running="{Binding IsRunning}"
+                                           Classes.ok="{Binding IsOk}"
+                                           Classes.fail="{Binding IsFail}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                           FontSize="13" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="{Binding Detail}"
+                                           Classes="data muted" TextWrapping="Wrap"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="18" Margin="0,2,0,10">
+            <Button Classes="accent" Content="ADD TO STEAM"
+                    Command="{Binding SetUpSteamCommand}" IsEnabled="{Binding CanSetUpSteam}"/>
+            <TextBlock VerticalAlignment="Center" Classes="muted" MaxWidth="520"
+                       TextWrapping="Wrap" Text="{Binding StatusText}"/>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

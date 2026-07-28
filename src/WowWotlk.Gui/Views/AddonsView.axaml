@@ -1,0 +1,229 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WowWotlk.Gui.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="880" d:DesignHeight="900"
+             x:Class="WowWotlk.Gui.Views.AddonsView"
+             x:DataType="vm:AddonsViewModel">
+
+    <UserControl.Styles>
+        <!-- The interface badge. 30300 is the number a 3.3.5a addon declares; anything else
+             gets legendary orange, the same colour warnings use everywhere in this app. -->
+        <Style Selector="Border.badge">
+            <Setter Property="CornerRadius" Value="2"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource FrostHairline}"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        <Style Selector="Border.badge TextBlock">
+            <Setter Property="FontFamily" Value="monospace"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{StaticResource FrostMuted}"/>
+        </Style>
+        <Style Selector="Border.badge.mismatch">
+            <Setter Property="BorderBrush" Value="{StaticResource QualityLegendary}"/>
+        </Style>
+        <Style Selector="Border.badge.mismatch TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource QualityLegendary}"/>
+        </Style>
+        <Style Selector="TextBlock.installed-mark">
+            <Setter Property="Foreground" Value="{StaticResource QualityUncommon}"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="22" MaxWidth="880" HorizontalAlignment="Stretch">
+
+        <StackPanel Spacing="4">
+            <TextBlock Classes="eyebrow" Text="INTERFACE ADDONS"/>
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Classes="data" Text="interface 30300"
+                           Foreground="{StaticResource QualityHeirloom}" VerticalAlignment="Bottom"/>
+                <TextBlock Classes="h1" Text="Addons"/>
+            </DockPanel>
+        </StackPanel>
+
+        <!-- No client: say what to do, not that something is missing. -->
+        <Border Classes="card" IsVisible="{Binding !HasClient}">
+            <StackPanel Spacing="8">
+                <TextBlock Text="No client found yet" FontWeight="SemiBold"/>
+                <TextBlock Classes="muted" TextWrapping="Wrap"
+                           Text="Install the client on the Install page, or point the installer at a folder you already have. Addons go into that client's Interface/AddOns folder."/>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Spacing="22" IsVisible="{Binding HasClient}">
+
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="ghost" Content="Rescan" Padding="12,4"
+                        Margin="8,0,0,0" Command="{Binding RefreshCommand}"/>
+                <SelectableTextBlock Classes="data muted" VerticalAlignment="Center"
+                                     Text="{Binding ClientRoot}" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+
+            <TextBlock Classes="data" IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                       Text="{Binding StatusMessage}" Foreground="{StaticResource FrostIce}"
+                       TextWrapping="Wrap"/>
+
+            <!-- Catalog -->
+            <StackPanel Spacing="10">
+                <DockPanel>
+                    <TextBox DockPanel.Dock="Right" Width="220" Text="{Binding Filter}"
+                             PlaceholderText="Filter by name or category"/>
+                    <TextBlock Classes="section" Text="CATALOG" VerticalAlignment="Center"/>
+                </DockPanel>
+                <!-- Header plus eight whole rows: an arbitrary height leaves a sliced row at
+                     the bottom edge, which reads as a rendering fault rather than a scroll. -->
+                <DataGrid ItemsSource="{Binding Catalog}" AutoGenerateColumns="False"
+                          IsReadOnly="True" CanUserSortColumns="True" MaxHeight="335"
+                          HeadersVisibility="Column">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="" Width="28">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="vm:CatalogRow">
+                                    <TextBlock Classes="installed-mark" Text="✦" Margin="6,0,0,0"
+                                               VerticalAlignment="Center"
+                                               IsVisible="{Binding IsInstalled}"
+                                               ToolTip.Tip="Installed"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="ADDON" Binding="{Binding Name}" Width="145"/>
+                        <DataGridTextColumn Header="CATEGORY" Binding="{Binding Category}" Width="118"/>
+                        <!-- The description is longer than any width a five-column table can
+                             give it, so it trims and carries the full text in a tooltip
+                             rather than clipping mid-word. -->
+                        <DataGridTemplateColumn Header="WHAT IT DOES" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="vm:CatalogRow">
+                                    <TextBlock Text="{Binding Description}" Margin="8,0"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               ToolTip.Tip="{Binding Description}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="VERSION" Width="100">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="vm:CatalogRow">
+                                    <TextBlock Classes="data muted" Text="{Binding VersionText}"
+                                               VerticalAlignment="Center" Margin="8,0"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="" Width="145">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="vm:CatalogRow">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="4,0"
+                                                VerticalAlignment="Center">
+                                        <Button Classes="ghost" Padding="10,3" FontSize="12"
+                                                Content="{Binding ActionText}"
+                                                Command="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).InstallFromCatalogCommand}"
+                                                CommandParameter="{Binding}"
+                                                IsEnabled="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).CanAct}"/>
+                                        <Button Classes="ghost" Padding="8,3" FontSize="12" Content="↗"
+                                                ToolTip.Tip="Open the addon's page"
+                                                IsVisible="{Binding Homepage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                Command="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).OpenHomepageCommand}"
+                                                CommandParameter="{Binding}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </StackPanel>
+
+            <!-- Anything not in the catalog -->
+            <StackPanel Spacing="10">
+                <TextBlock Classes="section" Text="INSTALL SOMETHING ELSE"/>
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="ghost" Content="Install from URL"
+                                    Margin="10,0,0,0" Command="{Binding InstallFromUrlCommand}"
+                                    IsEnabled="{Binding CanAct}"/>
+                            <TextBox Classes="data" Text="{Binding ManualUrl}"
+                                     PlaceholderText="https://…/SomeAddon.zip"/>
+                        </DockPanel>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="ghost" Content="Choose a .zip…"
+                                    Command="{Binding InstallFromZipCommand}" IsEnabled="{Binding CanAct}"/>
+                            <TextBlock Classes="muted" FontSize="12" VerticalAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Text="Any zip containing a folder with a .toc file works, including one that ships several folders side by side."/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- What's on disk -->
+            <StackPanel Spacing="10">
+                <TextBlock Classes="section" Text="INSTALLED"/>
+                <Border Classes="card" Padding="16,14" IsVisible="{Binding !Installed.Count}">
+                    <TextBlock Classes="muted" TextWrapping="Wrap"
+                               Text="Nothing installed yet. Pick something from the catalog above, or install a zip you already have."/>
+                </Border>
+                <DataGrid ItemsSource="{Binding Installed}" AutoGenerateColumns="False"
+                          IsReadOnly="True" CanUserSortColumns="True" MaxHeight="380"
+                          HeadersVisibility="Column" IsVisible="{Binding !!Installed.Count}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="ADDON" Binding="{Binding Title}" Width="*"/>
+                        <DataGridTemplateColumn Header="FOLDER" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="vm:InstalledRow">
+                                    <TextBlock Classes="data muted" Text="{Binding Name}"
+                                               VerticalAlignment="Center" Margin="8,0"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="VERSION" Width="100">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="vm:InstalledRow">
+                                    <TextBlock Classes="data muted" Text="{Binding VersionText}"
+                                               VerticalAlignment="Center" Margin="8,0"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="INTERFACE" Width="118">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="vm:InstalledRow">
+                                    <Border Classes="badge" Margin="8,0" VerticalAlignment="Center"
+                                            Classes.mismatch="{Binding InterfaceMismatch}"
+                                            ToolTip.Tip="{Binding InterfaceHint}">
+                                        <TextBlock Text="{Binding InterfaceText}"/>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="" Width="165">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate x:DataType="vm:InstalledRow">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="4,0"
+                                                VerticalAlignment="Center">
+                                        <ToggleSwitch OnContent="On" OffContent="Off"
+                                                      IsChecked="{Binding Enabled, Mode=OneWay}"
+                                                      Command="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).ToggleCommand}"
+                                                      CommandParameter="{Binding}"
+                                                      IsEnabled="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).CanAct}"/>
+                                        <Button Classes="ghost" Padding="10,3" FontSize="12" Content="Remove"
+                                                IsVisible="{Binding CanRemove}"
+                                                Command="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).RemoveCommand}"
+                                                CommandParameter="{Binding}"
+                                                IsEnabled="{Binding $parent[UserControl].((vm:AddonsViewModel)DataContext).CanAct}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                           IsVisible="{Binding !!Installed.Count}"
+                           Text="Disabling moves the folder to Interface/AddOns.disabled, which works from a fresh install — the client's own AddOns.txt doesn't exist until you've logged in once. Remove is only offered for addons this app installed, because only those have a recorded folder list."/>
+            </StackPanel>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

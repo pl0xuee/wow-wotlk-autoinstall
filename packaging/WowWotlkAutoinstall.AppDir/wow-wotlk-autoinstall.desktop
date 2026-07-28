@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=WotLK Autoinstall
+Comment=One-click WoW 3.3.5a client installer for Linux
+Exec=WowWotlk.Gui
+Icon=wow-wotlk-autoinstall
+Type=Application
+Categories=Game;Utility;
+Terminal=false
+StartupWMClass=WowWotlk.Gui
+X-AppImage-Version=0.1.0

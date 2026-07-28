@@ -1,0 +1,195 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:WowWotlk.Gui.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="880" d:DesignHeight="1100"
+             x:Class="WowWotlk.Gui.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <StackPanel Spacing="22" MaxWidth="880" HorizontalAlignment="Stretch">
+
+        <!-- Header -->
+        <StackPanel Spacing="4">
+            <TextBlock Classes="eyebrow" Text="CONFIGURATION"/>
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Classes="data" Text="{Binding CurrentVersion}"
+                           Foreground="{StaticResource QualityHeirloom}" VerticalAlignment="Bottom"/>
+                <TextBlock Classes="h1" Text="Settings"/>
+            </DockPanel>
+        </StackPanel>
+
+        <!-- Folders -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="FOLDERS"/>
+            <Grid ColumnDefinitions="*,16,*">
+                <Border Grid.Column="0" Classes="card">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="muted" FontSize="12" Text="Install the client to"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="ghost" Content="…"
+                                    Padding="12,5" Margin="8,0,0,0"
+                                    Command="{Binding PickInstallDirCommand}"/>
+                            <TextBox Classes="data" Text="{Binding InstallDir}"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Classes="card">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="muted" FontSize="12" Text="Download the zip to"/>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="ghost" Content="…"
+                                    Padding="12,5" Margin="8,0,0,0"
+                                    Command="{Binding PickDownloadDirCommand}"/>
+                            <TextBox Classes="data" Text="{Binding DownloadDir}"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+
+        <!-- Realm. The literal token the client reads labels the field, and the row underneath
+             shows what the installed client says today so the two can be compared. -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="REALM"/>
+            <Border Classes="card">
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Classes="data" Text="set realmlist" VerticalAlignment="Center"
+                                   Foreground="{StaticResource QualityHeirloom}"/>
+                        <TextBox Classes="data" Width="280" Text="{Binding ServerAddress}"
+                                 PlaceholderText="127.0.0.1"/>
+                    </StackPanel>
+
+                    <ContentControl Content="{Binding RealmlistOnDisk}">
+                        <ContentControl.ContentTemplate>
+                            <DataTemplate x:DataType="vm:CheckRow">
+                                <Grid ColumnDefinitions="26,150,*">
+                                    <TextBlock Grid.Column="0" Classes="glyph" Text="{Binding Glyph}"
+                                               Classes.ok="{Binding IsOk}"
+                                               Classes.warn="{Binding IsWarn}"
+                                               Classes.fail="{Binding IsFail}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                               FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding Detail}"
+                                               Classes="data muted" TextWrapping="Wrap"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ContentControl.ContentTemplate>
+                    </ContentControl>
+
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                        <Button Classes="ghost" Content="Apply realmlist now" Padding="16,6"
+                                IsEnabled="{Binding CanApplyRealmlist}"
+                                Command="{Binding ApplyRealmlistCommand}"/>
+                        <TextBlock VerticalAlignment="Center" Classes="muted" MaxWidth="520"
+                                   TextWrapping="Wrap" Text="{Binding RealmStatus}"/>
+                    </StackPanel>
+
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                               Text="Applying writes the address into every realmlist.wtf the installed client has and clears its Cache folder, so the new realm shows up at the login screen. An install does this on its own."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Client source -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="CLIENT SOURCE"/>
+            <Border Classes="card">
+                <StackPanel Spacing="14">
+                    <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,12,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Classes="muted" FontSize="12"
+                                   Text="Drive file id" VerticalAlignment="Center"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Classes="data" Width="330"
+                                 HorizontalAlignment="Left" Text="{Binding DriveFileId}"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Classes="muted" FontSize="12"
+                                   Text="Zip size, bytes" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="14">
+                            <TextBox Classes="data" Width="200" Text="{Binding ExpectedZipBytes}"/>
+                            <TextBlock Classes="data muted" VerticalAlignment="Center"
+                                       Text="{Binding ZipSizeNote}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                               Text="Change the id only if the Drive file is re-uploaded, which mints a new one. The size is what catches a truncated download, or the HTML error page Drive serves with a 200 when the daily quota runs out."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Proton -->
+        <StackPanel Spacing="10">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="ghost" Content="Rescan" Padding="12,4"
+                        Command="{Binding RescanProtonCommand}"/>
+                <TextBlock Classes="section" Text="PROTON" VerticalAlignment="Center"/>
+            </DockPanel>
+            <Border Classes="card">
+                <StackPanel Spacing="14">
+                    <ComboBox MinWidth="300" HorizontalAlignment="Left"
+                              FontFamily="monospace" FontSize="13"
+                              ItemsSource="{Binding ProtonBuilds}"
+                              SelectedItem="{Binding SelectedProton}"
+                              PlaceholderText="No Proton build found"/>
+                    <TextBlock Classes="data muted" TextWrapping="Wrap" Text="{Binding ProtonDetail}"/>
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                               Text="The build every new Steam entry is mapped to. Changing it here does not move an entry that already exists — run the Steam page to rewrite that one."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Updates -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="UPDATES"/>
+            <Border Classes="card">
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="30">
+                        <StackPanel Spacing="3">
+                            <TextBlock Classes="muted" FontSize="12" Text="Running"/>
+                            <TextBlock Classes="data" Text="{Binding CurrentVersion}"
+                                       Foreground="{StaticResource FrostText}"/>
+                        </StackPanel>
+                        <StackPanel Spacing="3">
+                            <TextBlock Classes="muted" FontSize="12" Text="Latest release"/>
+                            <TextBlock Classes="data" Text="{Binding LatestVersion}"
+                                       Foreground="{StaticResource FrostText}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <Button Classes="ghost" Content="Check for updates" Padding="16,6"
+                                IsEnabled="{Binding !IsCheckingUpdate}"
+                                Command="{Binding CheckForUpdateCommand}"/>
+                        <Button Classes="ghost" Content="Download and install" Padding="16,6"
+                                IsVisible="{Binding CanDownloadUpdate}"
+                                Command="{Binding DownloadUpdateCommand}"/>
+                        <Button Classes="ghost" Content="Open release notes" Padding="16,6"
+                                IsVisible="{Binding ReleaseUrl, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                Command="{Binding OpenReleaseNotesCommand}"/>
+                    </StackPanel>
+
+                    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding UpdateStatus}"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Save -->
+        <StackPanel Spacing="12" Margin="0,2,0,10">
+            <StackPanel Orientation="Horizontal" Spacing="18">
+                <Button Classes="accent" Content="SAVE SETTINGS" Command="{Binding SaveCommand}"/>
+                <TextBlock VerticalAlignment="Center" Classes="muted" MaxWidth="520"
+                           TextWrapping="Wrap" Text="{Binding StatusText}"/>
+            </StackPanel>
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="ghost" Content="Open" Padding="12,4"
+                        Margin="10,0,0,0" Command="{Binding OpenSettingsFileCommand}"/>
+                <SelectableTextBlock Classes="data" Text="{Binding SettingsPath}"
+                                     Foreground="{StaticResource FrostMuted}"
+                                     VerticalAlignment="Center"
+                                     TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </StackPanel>
+    </StackPanel>
+</UserControl>
