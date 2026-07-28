@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.1.10
+
+- **Details! Damage Meter added to the catalog**
+  ([Kowson/Details-Damage-Meter-for-3.3.5a](https://github.com/Kowson/Details-Damage-Meter-for-3.3.5a)),
+  and it is now the damage meter the one-click install ticks by default. It installs ten folders
+  — the meter plus its encounter, threat and per-raid info modules.
+- **Skada is no longer a default.** It stays in the catalog and installs in one click. Both read
+  the same combat log, and running two meters at once is duplicated work for one answer.
+- **ElvUI AddOnSkins added to the catalog**
+  ([ElvUI-WotLK/ElvUI_AddOnSkins](https://github.com/ElvUI-WotLK/ElvUI_AddOnSkins)), which
+  restyles other addons to match ElvUI. Not pre-ticked, and for a different reason than the rest
+  of the untickeds: it is additive, but it does nothing without ElvUI, which is not pre-ticked
+  either.
+- **The private realm address is out of the repository.** A real server's IP and port sat in the
+  v0.1.3 changelog entry and in the realmlist tests as sample data. Both now use `203.0.113.10`,
+  which RFC 5737 reserves for documentation. It remains in the git history and in the published
+  v0.1.3 release notes; removing it from those would need a history rewrite.
+
 ## v0.1.9
 
 - **A software cursor by default.** `gxCursor "0"`, because everything this installs runs under
@@ -79,8 +97,8 @@
 
 ## v0.1.3
 
-- **The realmlist no longer loses the port.** `209.25.140.23:1170` was written as
-  `209.25.140.23`, so the client fell back to the default 3724 and silently failed to connect —
+- **The realmlist no longer loses the port.** `203.0.113.10:1170` was written as
+  `203.0.113.10`, so the client fell back to the default 3724 and silently failed to connect —
   a client that looks correctly configured and simply doesn't work. A port is part of a
   realmlist entry; only a scheme and a trailing path are stripped now.
 

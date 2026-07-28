@@ -49,6 +49,18 @@
     "recommended": false
   },
   {
+    "id": "addonskins",
+    "name": "ElvUI AddOnSkins",
+    "category": "Interface",
+    "description": "Restyles other addons to match ElvUI, and skins the parts of the default interface ElvUI leaves alone. Needs ElvUI to do anything, so it is only worth ticking alongside it.",
+    "source": {
+      "kind": "github",
+      "repo": "ElvUI-WotLK/ElvUI_AddOnSkins"
+    },
+    "homepage": "https://github.com/ElvUI-WotLK/ElvUI_AddOnSkins",
+    "recommended": false
+  },
+  {
     "id": "dominos",
     "name": "Dominos",
     "category": "Interface",
@@ -85,16 +97,28 @@
     "recommended": true
   },
   {
+    "id": "details",
+    "name": "Details! Damage Meter",
+    "category": "Combat",
+    "description": "Damage, healing and threat meter with a breakdown of every fight — who did what, to whom, with which spell. The 3.3.5a backport, shipped with its raid-info and encounter modules.",
+    "source": {
+      "kind": "github",
+      "repo": "Kowson/Details-Damage-Meter-for-3.3.5a"
+    },
+    "homepage": "https://github.com/Kowson/Details-Damage-Meter-for-3.3.5a",
+    "recommended": true
+  },
+  {
     "id": "skada",
     "name": "Skada",
     "category": "Combat",
-    "description": "Damage, healing and threat meter. Lighter on memory than Recount and still actively maintained for WotLK.",
+    "description": "Damage, healing and threat meter. Lighter on memory than Details! and still actively maintained for WotLK.",
     "source": {
       "kind": "github",
       "repo": "bkader/Skada-WoTLK"
     },
     "homepage": "https://github.com/bkader/Skada-WoTLK",
-    "recommended": true
+    "recommended": false
   },
   {
     "id": "dbm",

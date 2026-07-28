@@ -493,7 +493,11 @@ public class OneClickInstallTests
         // ElvUI and Dominos both replace the action bars and conflict with each other,
         // Immersion replaces the quest window, Grid2 is healer-only. Installing any of them
         // without being asked is an opinion, and one-click must not hold opinions.
-        var opinionated = (string[])["elvui", "dominos", "immersion", "grid2", "cartomapper"];
+        // AddOnSkins is here for a different reason than the rest: it is additive, but it skins
+        // ElvUI and does nothing without it, so ticking it by default would install an addon
+        // that cannot work on a one-click run — ElvUI itself is not ticked.
+        var opinionated = (string[])
+            ["elvui", "addonskins", "dominos", "immersion", "grid2", "cartomapper"];
 
         var recommended = ShippedCatalog().Where(e => e.Recommended).Select(e => e.Id).ToList();
 
@@ -501,6 +505,12 @@ public class OneClickInstallTests
         Assert.All(opinionated, id => Assert.DoesNotContain(id, recommended));
         Assert.Contains("zygor", recommended);
         Assert.Contains("dbm", recommended);
+        // Details! is the default damage meter, so Skada is not — same rule as the guides
+        // below. Both read the same combat log and running two meters at once is duplicated
+        // work for one answer. Skada stays in the catalog.
+        Assert.Contains("details", recommended);
+        Assert.DoesNotContain("skada", recommended);
+        Assert.Single(recommended, id => id is "details" or "skada");
         // Zygor is the default levelling guide, so Questie is not: both do the same job, and
         // two guide addons on at once is redundancy the user did not ask for. Questie stays in
         // the catalog — this is about what gets ticked, not what is offered.

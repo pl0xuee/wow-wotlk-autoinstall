@@ -27,7 +27,8 @@ does the whole thing — client, realmlist, addons, Steam shortcut:
   installed, with a warning on any addon whose `## Interface` isn't `30300`. The Install page
   lists the whole catalog with a tick box each: seven additive addons are pre-ticked, and ElvUI,
   Dominos, Immersion, Grid2 and CartoMapper are not, because they replace core parts of the
-  interface and some of them conflict with each other. An addon that can't be fetched is skipped
+  interface and some of them conflict with each other. ElvUI AddOnSkins is not pre-ticked for a
+  different reason — it skins ElvUI and does nothing without it. An addon that can't be fetched is skipped
   and reported — it never fails the install.
 - **Game patches** — MPQ patches installed into `Data/<locale>` for the client's own language,
   starting with [WDM Dungeon Maps](https://github.com/Trimitor/WDM-patch). A patch already using
