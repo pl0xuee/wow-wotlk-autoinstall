@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.4
+
+- **Zygor Guides Viewer added to the catalog** ([ErebusAres/ZygorGuidesRemaster-3.3.5a_WOTLK](https://github.com/ErebusAres/ZygorGuidesRemaster-3.3.5a_WOTLK)),
+  and it is now the levelling guide the one-click install ticks by default.
+- **Questie is no longer a default.** It stays in the catalog and installs in one click — both
+  addons do the same job, and having two guides on at once is redundancy nobody asked for.
+  Tick it instead if you prefer map markers to a step-by-step guide.
+
 ## v0.1.3
 
 - **The realmlist no longer loses the port.** `209.25.140.23:1170` was written as

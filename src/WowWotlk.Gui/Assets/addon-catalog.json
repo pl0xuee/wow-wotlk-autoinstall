@@ -1,5 +1,18 @@
 [
   {
+    "id": "zygor",
+    "name": "Zygor Guides Viewer",
+    "category": "Quests",
+    "description": "Step-by-step levelling guide in an in-game viewer, with a waypoint arrow pointing at the next objective.",
+    "source": {
+      "kind": "github",
+      "repo": "ErebusAres/ZygorGuidesRemaster-3.3.5a_WOTLK",
+      "url": null
+    },
+    "homepage": "https://github.com/ErebusAres/ZygorGuidesRemaster-3.3.5a_WOTLK",
+    "recommended": true
+  },
+  {
     "id": "questie",
     "name": "Questie",
     "category": "Quests",
@@ -9,7 +22,7 @@
       "repo": "Netrinil/Questie-335"
     },
     "homepage": "https://github.com/Netrinil/Questie-335",
-    "recommended": true
+    "recommended": false
   },
   {
     "id": "immersion",

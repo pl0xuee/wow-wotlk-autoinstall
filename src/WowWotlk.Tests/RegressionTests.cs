@@ -499,8 +499,13 @@ public class OneClickInstallTests
 
         Assert.NotEmpty(recommended);
         Assert.All(opinionated, id => Assert.DoesNotContain(id, recommended));
-        Assert.Contains("questie", recommended);
+        Assert.Contains("zygor", recommended);
         Assert.Contains("dbm", recommended);
+        // Zygor is the default levelling guide, so Questie is not: both do the same job, and
+        // two guide addons on at once is redundancy the user did not ask for. Questie stays in
+        // the catalog — this is about what gets ticked, not what is offered.
+        Assert.DoesNotContain("questie", recommended);
+        Assert.Single(recommended, id => id is "zygor" or "questie");
     }
 
     [Fact]

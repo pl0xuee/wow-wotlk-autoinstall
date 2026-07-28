@@ -224,7 +224,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
-                               Text="Unticked by default: ElvUI and Dominos both replace the action bars and conflict with each other, Immersion replaces the quest window, and Grid2 is for healing. An addon that can't be fetched is skipped and reported — it never fails the install."/>
+                               Text="Unticked by default: ElvUI and Dominos both replace the action bars and conflict with each other, Immersion replaces the quest window, and Grid2 is for healing. Questie is off because Zygor covers the same job — tick it instead if you prefer map markers to a step-by-step guide. An addon that can't be fetched is skipped and reported — it never fails the install."/>
                 </StackPanel>
             </Border>
         </StackPanel>
