@@ -45,6 +45,7 @@ public class ClientInstallOrchestrator(
     GoogleDriveDownloader downloader,
     ClientArchiveExtractor extractor,
     RealmlistService realmlist,
+    WowConfigService wowConfig,
     AddonCatalog catalog,
     AddonInstallService addonInstaller,
     SteamLocator steamLocator,
@@ -79,6 +80,7 @@ public class ClientInstallOrchestrator(
         {
             log.Append($"  realmlist: {file}");
         }
+        ApplyDisplay(clientRoot, settings);
 
         // Remember where the client landed: the Addons and Steam pages both need it, and
         // re-deriving it means walking the tree again on every page load.
@@ -100,6 +102,34 @@ public class ClientInstallOrchestrator(
             : $"Client ready at {clientRoot}";
         Report(InstallPhase.Done, summary, 1);
         return clientRoot;
+    }
+
+    /// <summary>
+    /// Writes the chosen resolution into the client's own config.
+    ///
+    /// Never fails the install: a client at the wrong resolution is a working client, and by
+    /// this point 16 GiB has been downloaded and unpacked. A resolution nobody chose leaves
+    /// the file alone rather than guessing — on a machine whose displays could not be read,
+    /// picking one would be inventing an answer.
+    /// </summary>
+    private void ApplyDisplay(string clientRoot, AppSettings settings)
+    {
+        if (settings.PreferredResolution is not { Length: > 0 } preferred
+            || WowConfigService.ParseMode(preferred) is not { } mode)
+        {
+            return;
+        }
+        try
+        {
+            wowConfig.Apply(clientRoot, new DisplaySettings(mode, settings.Windowed));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            log.Append(
+                $"Could not set the resolution ({e.Message}); the client will start at its "
+                    + "own default and it can be changed in the game's video options."
+            );
+        }
     }
 
     public sealed record AddonOutcome(int Installed, int Failed);

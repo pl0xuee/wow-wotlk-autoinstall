@@ -27,6 +27,8 @@ public class ClientInstallOrchestratorTests
             .AddSingleton<GoogleDriveDownloader>()
             .AddSingleton<ClientArchiveExtractor>()
             .AddSingleton<RealmlistService>()
+            .AddSingleton<WowConfigService>()
+            .AddSingleton(_ => new WowWotlk.Gui.Services.Display.DisplayCatalog())
             .AddSingleton<AddonCatalog>()
             .AddSingleton<AddonResolver>()
             .AddSingleton<InstalledAddonStore>()

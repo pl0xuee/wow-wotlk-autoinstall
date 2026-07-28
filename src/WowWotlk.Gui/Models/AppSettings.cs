@@ -53,6 +53,15 @@ public class AppSettings
 
     public bool SetupSteamAfterInstall { get; set; } = true;
 
+    /// <summary>
+    /// Resolution to write into the client as "WxH". Null means "leave the client alone", so
+    /// an install on a machine whose displays could not be read changes nothing.
+    /// </summary>
+    public string? PreferredResolution { get; set; }
+
+    /// <summary>Run the client in a window rather than fullscreen.</summary>
+    public bool Windowed { get; set; }
+
     /// <summary>Whether the one-click install also installs addons.</summary>
     public bool InstallAddonsAfterInstall { get; set; } = true;
 

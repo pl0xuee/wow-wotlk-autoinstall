@@ -13,6 +13,9 @@ does the whole thing — client, realmlist, addons, Steam shortcut:
 - **The client** — downloads your 3.3.5a zip from Google Drive (resumable, so a dropped
   connection costs you nothing), unpacks it, and finds `Wow.exe` wherever the archive put it.
   Already have the zip, or an unpacked client? Point at either instead and skip the download.
+- **The display** — pick from the resolutions your monitors actually report, fullscreen or
+  windowed, written into `WTF/Config.wtf` so the first launch is the right size instead of
+  800x600.
 - **The realm** — writes `set realmlist <your address>` into every `realmlist.wtf` the client has,
   not just one, and clears the client `Cache` folder so the new realm actually takes effect.
 - **Addons** — a curated catalog of 3.3.5a addons with one-click install and update, plus

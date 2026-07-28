@@ -195,6 +195,28 @@
             </Border>
         </StackPanel>
 
+        <!-- Display. Sits with the realm because both write into the client rather than
+             describing where it comes from. -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="DISPLAY"/>
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <TextBlock Text="Resolution" VerticalAlignment="Center" Width="86"
+                                   Classes="muted" FontSize="12"/>
+                        <ComboBox Width="260" FontFamily="monospace" FontSize="13"
+                                  ItemsSource="{Binding Resolutions}"
+                                  SelectedItem="{Binding SelectedResolution}"
+                                  IsEnabled="{Binding !!Resolutions.Count}"/>
+                        <CheckBox Content="Windowed" IsChecked="{Binding Windowed}"
+                                  VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                               Text="{Binding ResolutionNote}"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
         <!-- Addons. Shown in full rather than hidden behind a count: this is the one step that
              writes files the user did not individually ask for, so what it will do is on the
              page before they press the button. -->

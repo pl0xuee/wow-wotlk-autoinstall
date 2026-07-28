@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.1.5
+
+- **Resolution picker.** The Install page now has a DISPLAY section listing the resolutions your
+  monitors actually report, with the primary display's native mode selected by default and a
+  windowed toggle. It is written to `WTF/Config.wtf` during the install, so the first launch is
+  already the right size — a client with no config starts at 800x600, and fixing that from the
+  in-game menu means finding the menu at 800x600 first.
+- Modes come from `/sys/class/drm`, so the list is what the panels support rather than the
+  current desktop layout, and it works under Wayland with no external tool. Only real modes are
+  offered: a 3.3.5a client asked for one its monitor cannot show starts to a black screen.
+- Every other directive in `Config.wtf` is preserved — that file accumulates every option-menu
+  change a player has ever made.
+- A machine whose displays cannot be read leaves the client's own default alone rather than
+  guessing.
+
 ## v0.1.4
 
 - **Zygor Guides Viewer added to the catalog** ([ErebusAres/ZygorGuidesRemaster-3.3.5a_WOTLK](https://github.com/ErebusAres/ZygorGuidesRemaster-3.3.5a_WOTLK)),

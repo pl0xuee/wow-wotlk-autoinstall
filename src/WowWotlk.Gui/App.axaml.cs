@@ -58,6 +58,10 @@ public partial class App : Application
             .AddSingleton<GoogleDriveDownloader>()
             .AddSingleton<ClientArchiveExtractor>()
             .AddSingleton<RealmlistService>()
+            .AddSingleton<WowConfigService>()
+            // Constructed explicitly: its sysfs root and xrandr probe are optional parameters
+            // so tests can scan a fixture, and the container must not try to resolve them.
+            .AddSingleton(_ => new Services.Display.DisplayCatalog())
             .AddSingleton<ClientInstallOrchestrator>()
             .AddSingleton<AddonCatalog>()
             .AddSingleton<AddonResolver>()

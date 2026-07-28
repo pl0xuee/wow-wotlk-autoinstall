@@ -8,6 +8,7 @@ using WowWotlk.Gui.Models;
 using WowWotlk.Gui.Services;
 using WowWotlk.Gui.Services.Addons;
 using WowWotlk.Gui.Services.Client;
+using WowWotlk.Gui.Services.Display;
 
 namespace WowWotlk.Gui.ViewModels;
 
@@ -24,6 +25,15 @@ public partial class AddonChoice(string id, string name, string category, bool s
 
     [ObservableProperty]
     public partial bool Selected { get; set; } = selected;
+}
+
+/// <summary>
+/// One resolution the picker offers, and where it came from. "Native" is the primary display's
+/// own mode — the one a user almost always wants, and the reason the list is not just numbers.
+/// </summary>
+public sealed record ResolutionRow(string Value, string Detail)
+{
+    public override string ToString() => Detail.Length == 0 ? Value : $"{Value}   {Detail}";
 }
 
 /// <summary>One preflight result. The booleans drive Avalonia's conditional style classes.</summary>
@@ -114,6 +124,34 @@ public partial class InstallViewModel : ViewModelBase
 
     partial void OnDriveFileIdChanged(string value) => OnPropertyChanged(nameof(HasDriveFileId));
 
+    public ObservableCollection<ResolutionRow> Resolutions { get; } = [];
+
+    [ObservableProperty]
+    public partial ResolutionRow? SelectedResolution { get; set; }
+
+    [ObservableProperty]
+    public partial bool Windowed { get; set; }
+
+    [ObservableProperty]
+    public partial string ResolutionNote { get; set; } = "";
+
+    partial void OnSelectedResolutionChanged(ResolutionRow? value)
+    {
+        if (_suppressWriteBack)
+        {
+            return;
+        }
+        _settingsService.Settings.PreferredResolution = value?.Value;
+    }
+
+    partial void OnWindowedChanged(bool value)
+    {
+        if (!_suppressWriteBack)
+        {
+            _settingsService.Settings.Windowed = value;
+        }
+    }
+
     [ObservableProperty]
     public partial bool InstallAddons { get; set; }
 
@@ -165,12 +203,14 @@ public partial class InstallViewModel : ViewModelBase
         ClientInstallOrchestrator orchestrator,
         PreflightService preflight,
         AddonCatalog catalog,
+        DisplayCatalog displays,
         LogService log
     )
     {
         _settingsService = settingsService;
         _runner = runner;
         _preflight = preflight;
+        _displays = displays;
         _log = log;
 
         var settings = settingsService.Settings;
@@ -194,6 +234,7 @@ public partial class InstallViewModel : ViewModelBase
         SourceIsZip = settings.ClientSource == ClientSource.LocalZip;
         SourceIsFolder = settings.ClientSource == ClientSource.ExistingFolder;
         ResetPhases();
+        LoadResolutions();
 
         // Any operation anywhere in the app changes whether this page's button should be live.
         runner.Started += _ => Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(CanInstall)));
@@ -307,6 +348,10 @@ public partial class InstallViewModel : ViewModelBase
             DriveFileId = settings.DriveFileId;
             InstallAddons = settings.InstallAddonsAfterInstall;
             InstalledClientRoot = settings.ClientRoot;
+            Windowed = settings.Windowed;
+            SelectedResolution =
+                Resolutions.FirstOrDefault(r => r.Value == settings.PreferredResolution)
+                ?? SelectedResolution;
         }
         finally
         {
@@ -404,6 +449,60 @@ public partial class InstallViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Fills the picker from the modes this machine's displays actually report, and selects the
+    /// saved choice — or the primary display's native mode when there is none.
+    ///
+    /// Offering only real modes matters: a 3.3.5a client asked for a resolution its monitor
+    /// cannot show starts to a black screen, and the way out is editing Config.wtf by hand,
+    /// which is exactly what this picker exists to avoid.
+    /// </summary>
+    private void LoadResolutions()
+    {
+        var choices = _displays.Choices();
+        var saved = _settingsService.Settings.PreferredResolution;
+        _suppressWriteBack = true;
+        try
+        {
+            Resolutions.Clear();
+            foreach (var choice in choices)
+            {
+                var where = choice.Displays.Count > 1
+                    ? $"{choice.Displays.Count} displays"
+                    : string.Join(", ", choice.Displays);
+                Resolutions.Add(
+                    new ResolutionRow(
+                        choice.Mode.ToString(),
+                        choice.IsPrimaryNative ? $"native · {where}" : where
+                    )
+                );
+            }
+
+            SelectedResolution =
+                Resolutions.FirstOrDefault(r => r.Value == saved) ?? Resolutions.FirstOrDefault();
+            Windowed = _settingsService.Settings.Windowed;
+        }
+        finally
+        {
+            _suppressWriteBack = false;
+        }
+
+        // The selection above was suppressed to avoid a write-back, so persist the resolved
+        // default explicitly — otherwise the install would write nothing on a first run.
+        _settingsService.Settings.PreferredResolution = SelectedResolution?.Value;
+
+        ResolutionNote = Resolutions.Count switch
+        {
+            0 => "No displays could be read, so the client will be left at its own default. "
+                + "Set the resolution in the game's video options.",
+            _ when saved is { Length: > 0 } && Resolutions.All(r => r.Value != saved) =>
+                $"The saved resolution {saved} is not offered by any connected display; "
+                    + $"{SelectedResolution?.Value} will be used instead.",
+            _ => "Written to WTF/Config.wtf, so the first launch is already the right size. "
+                + "Only modes your displays report are listed.",
+        };
+    }
+
     private void ResetPhases()
     {
         Phases.Clear();
@@ -459,5 +558,6 @@ public partial class InstallViewModel : ViewModelBase
     private readonly SettingsService _settingsService;
     private readonly OperationRunner _runner;
     private readonly PreflightService _preflight;
+    private readonly DisplayCatalog _displays;
     private readonly LogService _log;
 }
