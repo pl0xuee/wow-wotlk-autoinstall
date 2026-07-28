@@ -1,4 +1,5 @@
 using WowWotlk.Gui.Services.Addons;
+using WowWotlk.Gui.Services.Patches;
 using WowWotlk.Gui.Models;
 using WowWotlk.Gui.Services.Steam;
 
@@ -48,6 +49,8 @@ public class ClientInstallOrchestrator(
     WowConfigService wowConfig,
     AddonCatalog catalog,
     AddonInstallService addonInstaller,
+    PatchCatalog patchCatalog,
+    ClientPatchService patchInstaller,
     SteamLocator steamLocator,
     CompatToolCatalog compatTools,
     SteamRuntimeCatalog steamRuntimes,
@@ -91,14 +94,19 @@ public class ClientInstallOrchestrator(
             ? await InstallAddonsAsync(clientRoot, settings, ct)
             : null;
 
+        var patchOutcome = settings.InstallPatchesAfterInstall
+            ? await InstallPatchesAsync(clientRoot, settings, ct)
+            : null;
+
         if (settings.SetupSteamAfterInstall)
         {
             await RunSteamSetupAsync(clientRoot, settings, ct);
         }
 
-        var summary = addonOutcome is { Failed: > 0 }
-            ? $"Client ready at {clientRoot} — {addonOutcome.Installed} addons installed, "
-                + $"{addonOutcome.Failed} could not be fetched (see the log)"
+        var failed = (addonOutcome?.Failed ?? 0) + (patchOutcome?.Failed ?? 0);
+        var summary = failed > 0
+            ? $"Client ready at {clientRoot} — {failed} download(s) could not be fetched, "
+                + "see the log. Everything else is installed."
             : $"Client ready at {clientRoot}";
         Report(InstallPhase.Done, summary, 1);
         return clientRoot;
@@ -195,6 +203,49 @@ public class ClientInstallOrchestrator(
         settings.SelectedAddonIds is { } ids
             ? catalog.Entries.Where(e => ids.Contains(e.Id, StringComparer.Ordinal)).ToList()
             : catalog.Entries.Where(e => e.Recommended).ToList();
+
+    /// <summary>
+    /// Installs the selected MPQ patches. Like addons, a failure here is logged and counted
+    /// rather than failing an install that has already downloaded and unpacked a client.
+    /// </summary>
+    public async Task<AddonOutcome> InstallPatchesAsync(
+        string clientRoot,
+        AppSettings settings,
+        CancellationToken ct
+    )
+    {
+        var wanted = SelectedPatches(settings);
+        if (wanted.Count == 0)
+        {
+            return new AddonOutcome(0, 0);
+        }
+        Report(InstallPhase.Addons, "Installing patches…", 0);
+        var installed = 0;
+        var failed = 0;
+        for (var i = 0; i < wanted.Count; i++)
+        {
+            ct.ThrowIfCancellationRequested();
+            var patch = wanted[i];
+            Report(InstallPhase.Addons, patch.Name, (double)i / wanted.Count, $"{i + 1} / {wanted.Count}");
+            try
+            {
+                await patchInstaller.InstallAsync(clientRoot, patch, null, ct);
+                installed++;
+            }
+            catch (Exception e) when (!ct.IsCancellationRequested)
+            {
+                failed++;
+                log.Append($"Could not install {patch.Name}: {e.Message}");
+            }
+        }
+        return new AddonOutcome(installed, failed);
+    }
+
+    /// <summary>The patches the one-click install should fetch.</summary>
+    public List<ClientPatch> SelectedPatches(AppSettings settings) =>
+        settings.SelectedPatchIds is { } ids
+            ? patchCatalog.Entries.Where(e => ids.Contains(e.Id, StringComparer.Ordinal)).ToList()
+            : patchCatalog.Entries.Where(e => e.Recommended).ToList();
 
     /// <summary>
     /// Registers the client with Steam. Public so the Steam page can run the same pipeline on

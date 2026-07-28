@@ -28,6 +28,9 @@ public class ClientInstallOrchestratorTests
             .AddSingleton<ClientArchiveExtractor>()
             .AddSingleton<RealmlistService>()
             .AddSingleton<WowConfigService>()
+            .AddSingleton<WowWotlk.Gui.Services.Patches.PatchCatalog>()
+            .AddSingleton<WowWotlk.Gui.Services.Patches.InstalledPatchStore>()
+            .AddSingleton<WowWotlk.Gui.Services.Patches.ClientPatchService>()
             .AddSingleton(_ => new WowWotlk.Gui.Services.Display.DisplayCatalog())
             .AddSingleton<AddonCatalog>()
             .AddSingleton<AddonResolver>()
@@ -54,6 +57,7 @@ public class ClientInstallOrchestratorTests
         // installs go to the network. Both are covered by their own tests.
         settings.SetupSteamAfterInstall = false;
         settings.InstallAddonsAfterInstall = false;
+        settings.InstallPatchesAfterInstall = false;
         return (services.GetRequiredService<ClientInstallOrchestrator>(), settingsService);
     }
 

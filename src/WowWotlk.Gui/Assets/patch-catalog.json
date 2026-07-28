@@ -1,0 +1,11 @@
+[
+  {
+    "id": "wdm-maps",
+    "name": "Dungeon Maps (WDM)",
+    "description": "Adds 56 maps from retail WoW — Classic and Burning Crusade dungeons, continents and battlegrounds — all made to work in Wrath.",
+    "repo": "Trimitor/WDM-patch",
+    "asset": "patch-{locale}-M.MPQ",
+    "homepage": "https://github.com/Trimitor/WDM-patch",
+    "recommended": true
+  }
+]

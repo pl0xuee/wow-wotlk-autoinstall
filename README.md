@@ -25,6 +25,9 @@ does the whole thing — client, realmlist, addons, Steam shortcut:
   Dominos, Immersion, Grid2 and CartoMapper are not, because they replace core parts of the
   interface and some of them conflict with each other. An addon that can't be fetched is skipped
   and reported — it never fails the install.
+- **Game patches** — MPQ patches installed into `Data/<locale>` for the client's own language,
+  starting with [WDM Dungeon Maps](https://github.com/Trimitor/WDM-patch). A patch already using
+  the same file name is kept rather than overwritten.
 - **Steam** — adds a **World of Warcraft 3.3.5a** shortcut pointing at `Wow.exe`, assigns a Proton
   build, creates the prefix up front so your first Play click goes straight to the login screen,
   and installs library artwork.

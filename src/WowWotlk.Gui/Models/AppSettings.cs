@@ -62,6 +62,15 @@ public class AppSettings
     /// <summary>Run the client in a window rather than fullscreen.</summary>
     public bool Windowed { get; set; }
 
+    /// <summary>Whether the one-click install also installs client patches.</summary>
+    public bool InstallPatchesAfterInstall { get; set; } = true;
+
+    /// <summary>
+    /// Patch ids the one-click install will fetch. Null means "the recommended set"; an empty
+    /// list is a real choice to install none.
+    /// </summary>
+    public List<string>? SelectedPatchIds { get; set; }
+
     /// <summary>Whether the one-click install also installs addons.</summary>
     public bool InstallAddonsAfterInstall { get; set; } = true;
 

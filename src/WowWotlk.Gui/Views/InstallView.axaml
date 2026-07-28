@@ -251,6 +251,30 @@
             </Border>
         </StackPanel>
 
+        <!-- Patches are separate from addons on purpose: they are game data rather than
+             interface code, they go into Data/<locale> rather than Interface/AddOns, and
+             removing one is deleting a file rather than a folder. -->
+        <StackPanel Spacing="10">
+            <TextBlock Classes="section" Text="GAME PATCHES"/>
+            <Border Classes="card">
+                <StackPanel Spacing="12">
+                    <CheckBox Content="Install game patches as part of the install"
+                              IsChecked="{Binding InstallPatches}"/>
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding PatchSummary}"/>
+                    <ItemsControl ItemsSource="{Binding PatchChoices}" IsEnabled="{Binding InstallPatches}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AddonChoice">
+                                <CheckBox IsChecked="{Binding Selected}" Content="{Binding Name}"
+                                          Margin="0,0,8,0"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                               Text="MPQ files that go into the client's Data folder for its language, so the game engine loads them at startup. A file already using the same name is kept alongside rather than overwritten — two patches cannot share a letter, and the engine would silently load only one."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
         <StackPanel Spacing="10">
             <TextBlock Classes="section" Text="STEAM"/>
             <Border Classes="card">

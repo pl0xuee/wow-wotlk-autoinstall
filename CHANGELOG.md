@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.1.6
+
+- **Game patches.** A new GAME PATCHES section on the Install page, installed as part of the
+  one-click run, starting with **Dungeon Maps (WDM)**
+  ([Trimitor/WDM-patch](https://github.com/Trimitor/WDM-patch)) — 56 Classic and Burning Crusade
+  dungeon, continent and battleground maps made to work in Wrath.
+- These are MPQ files rather than addons, so they are handled as their own thing: they go into
+  `Data/<locale>` rather than `Interface/AddOns`, the file to fetch depends on the client's
+  language, and removing one deletes a file rather than a folder. The locale is read from the
+  client's own `Data` folder — the wrong file is not a broken install, it is a silently absent
+  one.
+- **A patch already using the same name is kept, not overwritten.** Two patches cannot share a
+  letter; the engine loads one and silently ignores the other, and the symptom turns up much
+  later as missing models. The displaced file is set aside and put back if the patch is removed.
+- The download is staged beside its target and renamed on completion, so an interrupted install
+  never leaves a half-written MPQ where the engine will try to read it.
+
 ## v0.1.5
 
 - **Resolution picker.** The Install page now has a DISPLAY section listing the resolutions your

@@ -68,6 +68,9 @@ public partial class App : Application
             .AddSingleton<InstalledAddonStore>()
             .AddSingleton<AddonInstallService>()
             .AddSingleton<AddonScanner>()
+            .AddSingleton<Services.Patches.PatchCatalog>()
+            .AddSingleton<Services.Patches.InstalledPatchStore>()
+            .AddSingleton<Services.Patches.ClientPatchService>()
             .AddSingleton<SteamLocator>()
             // Constructed explicitly: the well-known-directories parameter is optional so
             // tests can scan a fixture, and the container must not try to resolve it.

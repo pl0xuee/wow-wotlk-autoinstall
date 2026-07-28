@@ -9,6 +9,7 @@ using WowWotlk.Gui.Services;
 using WowWotlk.Gui.Services.Addons;
 using WowWotlk.Gui.Services.Client;
 using WowWotlk.Gui.Services.Display;
+using WowWotlk.Gui.Services.Patches;
 
 namespace WowWotlk.Gui.ViewModels;
 
@@ -153,6 +154,34 @@ public partial class InstallViewModel : ViewModelBase
     }
 
     [ObservableProperty]
+    public partial bool InstallPatches { get; set; }
+
+    /// <summary>Game-data patches, kept apart from addons because they are a different thing.</summary>
+    public ObservableCollection<AddonChoice> PatchChoices { get; } = [];
+
+    public string PatchSummary =>
+        !InstallPatches ? "No patches will be installed."
+        : PatchChoices.Count(c => c.Selected) is var n && n == 0
+            ? "No patches ticked."
+            : $"{n} patch{(n == 1 ? "" : "es")} will be installed into the client's Data folder.";
+
+    partial void OnInstallPatchesChanged(bool value)
+    {
+        if (!_suppressWriteBack)
+        {
+            _settingsService.Settings.InstallPatchesAfterInstall = value;
+        }
+        OnPropertyChanged(nameof(PatchSummary));
+    }
+
+    private void SavePatchSelection()
+    {
+        _settingsService.Settings.SelectedPatchIds =
+            [.. PatchChoices.Where(c => c.Selected).Select(c => c.Id)];
+        OnPropertyChanged(nameof(PatchSummary));
+    }
+
+    [ObservableProperty]
     public partial bool InstallAddons { get; set; }
 
     /// <summary>Every catalog entry with a tick box, so the one-click set is visible and editable.</summary>
@@ -203,6 +232,7 @@ public partial class InstallViewModel : ViewModelBase
         ClientInstallOrchestrator orchestrator,
         PreflightService preflight,
         AddonCatalog catalog,
+        PatchCatalog patches,
         DisplayCatalog displays,
         LogService log
     )
@@ -215,6 +245,15 @@ public partial class InstallViewModel : ViewModelBase
 
         var settings = settingsService.Settings;
         InstallAddons = settings.InstallAddonsAfterInstall;
+        InstallPatches = settings.InstallPatchesAfterInstall;
+        var chosenPatches = orchestrator.SelectedPatches(settings).Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var entry in patches.Entries)
+        {
+            var choice = new AddonChoice(entry.Id, entry.Name, "", chosenPatches.Contains(entry.Id));
+            choice.PropertyChanged += (_, _) => SavePatchSelection();
+            PatchChoices.Add(choice);
+        }
+
         var chosen = orchestrator.SelectedAddons(settings).Select(a => a.Id).ToHashSet(StringComparer.Ordinal);
         foreach (var entry in catalog.Entries)
         {
@@ -347,6 +386,7 @@ public partial class InstallViewModel : ViewModelBase
             ExistingClientPath = settings.ExistingClientPath;
             DriveFileId = settings.DriveFileId;
             InstallAddons = settings.InstallAddonsAfterInstall;
+            InstallPatches = settings.InstallPatchesAfterInstall;
             InstalledClientRoot = settings.ClientRoot;
             Windowed = settings.Windowed;
             SelectedResolution =
