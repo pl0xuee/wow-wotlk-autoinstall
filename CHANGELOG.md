@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.10
+## v0.1.11
 
 - **A fresh install needs nothing typed in.** The realm now defaults to `209.25.140.23:1170`
   rather than `127.0.0.1`, and the build ships the Google Drive id of the client zip rather than
@@ -21,6 +21,9 @@
   repo holds the addon's files at its root rather than in a `DungeonClear/` folder, which would
   install under the wrong folder name by hand; the installer names the folder from the `.toc`, so
   it lands as `Interface/AddOns/DungeonClear` and the client loads it.
+
+## v0.1.10
+
 - **Details! Damage Meter added to the catalog**
   ([Kowson/Details-Damage-Meter-for-3.3.5a](https://github.com/Kowson/Details-Damage-Meter-for-3.3.5a)),
   and it is now the damage meter the one-click install ticks by default. It installs ten folders
