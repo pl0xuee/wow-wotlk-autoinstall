@@ -10,7 +10,7 @@ local server.
 Pick a folder, set the realm address, click **INSTALL EVERYTHING**, and walk away. One button
 does the whole thing — client, realmlist, addons, Steam shortcut:
 
-- **The client** — downloads your 3.3.5a zip from Google Drive (resumable, so a dropped
+- **The client** — downloads the 3.3.5a client zip from Google Drive (resumable, so a dropped
   connection costs you nothing), unpacks it, and finds `Wow.exe` wherever the archive put it.
   Already have the zip, or an unpacked client? Point at either instead and skip the download.
 - **The display** — pick from the resolutions your monitors actually report, fullscreen or
@@ -22,14 +22,18 @@ does the whole thing — client, realmlist, addons, Steam shortcut:
   have already played keeps its own settings.
 - **The realm** — writes `set realmlist <your address>` into every `realmlist.wtf` the client has,
   not just one, and clears the client `Cache` folder so the new realm actually takes effect.
+  Defaults to `209.25.140.23:1170`; change it in the **Server address** box on either page.
 - **Addons** — a curated catalog of 3.3.5a addons with one-click install and update, plus
   install-from-`.zip` and install-from-URL for anything else. Enable, disable and remove what's
   installed, with a warning on any addon whose `## Interface` isn't `30300`. The Install page
-  lists the whole catalog with a tick box each: seven additive addons are pre-ticked, and ElvUI,
+  lists the whole catalog with a tick box each: eight additive addons are pre-ticked, and ElvUI,
   Dominos, Immersion, Grid2 and CartoMapper are not, because they replace core parts of the
   interface and some of them conflict with each other. ElvUI AddOnSkins is not pre-ticked for a
-  different reason — it skins ElvUI and does nothing without it. An addon that can't be fetched is skipped
-  and reported — it never fails the install.
+  different reason — it skins ElvUI and does nothing without it. One of the pre-ticked eight,
+  [DungeonClear](https://github.com/jrad7/mod-dungeon-clear-addon), needs the `mod-dungeon-clear`
+  module running on your server and a playerbots tank bot in the party — untick it if your realm
+  doesn't run it. An addon that can't be fetched is skipped and reported — it never fails the
+  install.
 - **Game patches** — MPQ patches installed into `Data/<locale>` for the client's own language,
   starting with [WDM Dungeon Maps](https://github.com/Trimitor/WDM-patch). A patch already using
   the same file name is kept rather than overwritten.
@@ -62,17 +66,21 @@ chmod +x WowWotlkAutoinstall-x86_64.AppImage
 
 ## First run
 
-**This app ships no game client and no link to one.** Bring your own 3.3.5a client, then pick a
-source on the Install page:
+Nothing needs typing in. A fresh install already points at `209.25.140.23:1170` and downloads its
+3.3.5a client from the Drive file this build ships the id for, so **INSTALL EVERYTHING** is the
+whole first run.
+
+To use a client you already have, pick a different source on the Install page:
 
 - **Zip on disk** or **Folder already unpacked** — point at what you have, and you're done.
-- **Google Drive** — put your own share link's file id on the Settings page first. It's the long
-  code between `/d/` and `/view`:
+- **Google Drive** — put your own share link's file id on the Settings page instead. It's the
+  long code between `/d/` and `/view`:
   `https://drive.google.com/file/d/`**`<this part>`**`/view`. Set **Zip size, bytes** to match
   your upload, or `0` to skip the size check.
 
-The id is stored in your own `settings.json` and is never part of this repo — a shared public
-link burns one daily Google quota between everyone who has it.
+The shipped id is one Drive file and Google's quota is per file, so every copy of this app draws
+on the same daily allowance rather than one each — see the note below for what that looks like
+when it runs out.
 
 ## Building from source
 

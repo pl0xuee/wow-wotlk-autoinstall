@@ -128,14 +128,29 @@ public class PreflightSourceTests
     }
 
     [Fact]
-    public void Fails_the_drive_source_until_a_file_id_is_set()
+    public void Fails_the_drive_source_when_the_file_id_is_cleared()
     {
-        // The shipped build carries no file id — the client zip is the user's own upload. A
-        // fresh install must say so up front rather than starting a download of nothing.
-        var check = PreflightService.SourceCheck(ClientSource.GoogleDrive, new AppSettings());
+        // The shipped build carries an id, but the Settings box can be emptied — clearing it to
+        // paste a new one, most obviously. Say so up front rather than starting a download of
+        // nothing.
+        var check = PreflightService.SourceCheck(
+            ClientSource.GoogleDrive,
+            new AppSettings { DriveFileId = "" }
+        );
 
         Assert.Equal(CheckState.Fail, check.State);
         Assert.Contains("Settings", check.Detail);
+    }
+
+    [Fact]
+    public void Passes_the_drive_source_on_a_fresh_install()
+    {
+        // Nothing typed in, and the Install page's button is live: that is the whole point of
+        // shipping the id.
+        Assert.Equal(
+            CheckState.Ok,
+            PreflightService.SourceCheck(ClientSource.GoogleDrive, new AppSettings()).State
+        );
     }
 
     [Fact]

@@ -145,6 +145,18 @@
     "recommended": false
   },
   {
+    "id": "dungeonclear",
+    "name": "DungeonClear",
+    "category": "Dungeons",
+    "description": "In-game panel for sending a playerbots tank bot through a dungeon on its own: On, Off, Skip and Pause, a live status line, and a Go button per boss. The companion to the mod-dungeon-clear server module — it needs that module and a tank bot in the party to do anything.",
+    "source": {
+      "kind": "github",
+      "repo": "jrad7/mod-dungeon-clear-addon"
+    },
+    "homepage": "https://github.com/jrad7/mod-dungeon-clear-addon",
+    "recommended": true
+  },
+  {
     "id": "atlasloot",
     "name": "AtlasLoot",
     "category": "Loot",

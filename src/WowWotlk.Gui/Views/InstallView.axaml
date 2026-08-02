@@ -190,7 +190,7 @@
                                  PlaceholderText="127.0.0.1"/>
                     </StackPanel>
                     <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
-                               Text="Written to every realmlist.wtf the client has. Use 127.0.0.1 for a server on this machine, or the LAN address of the box running it."/>
+                               Text="Written to every realmlist.wtf the client has. Filled in with the realm this build is for — replace it with 127.0.0.1 for a server on this machine, or the LAN address of the box running it."/>
                 </StackPanel>
             </Border>
         </StackPanel>
@@ -246,7 +246,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
-                               Text="Unticked by default: ElvUI and Dominos both replace the action bars and conflict with each other, Immersion replaces the quest window, and Grid2 is for healing. Questie is off because Zygor covers the same job — tick it instead if you prefer map markers to a step-by-step guide. An addon that can't be fetched is skipped and reported — it never fails the install."/>
+                               Text="Unticked by default: ElvUI and Dominos both replace the action bars and conflict with each other, Immersion replaces the quest window, and Grid2 is for healing. Questie is off because Zygor covers the same job — tick it instead if you prefer map markers to a step-by-step guide. DungeonClear is ticked, but only does anything on a realm running the mod-dungeon-clear module with a playerbots tank bot in your party — untick it if yours doesn't. An addon that can't be fetched is skipped and reported — it never fails the install."/>
                 </StackPanel>
             </Border>
         </StackPanel>

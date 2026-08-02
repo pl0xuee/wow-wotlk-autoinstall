@@ -505,6 +505,14 @@ public class OneClickInstallTests
         Assert.All(opinionated, id => Assert.DoesNotContain(id, recommended));
         Assert.Contains("zygor", recommended);
         Assert.Contains("dbm", recommended);
+        // DungeonClear is ticked even though it does nothing without the mod-dungeon-clear
+        // module on the server and a playerbots tank bot in the party, which looks like the
+        // AddOnSkins case and is not. AddOnSkins' other half is ElvUI, which sits in this very
+        // catalog deliberately unticked, so a one-click run would install a skin for an addon it
+        // had just chosen not to install. DungeonClear's other half is server side, out of this
+        // installer's reach either way, and present on the realms these clients are built for.
+        // Asserted so it is not quietly unticked later by analogy with AddOnSkins.
+        Assert.Contains("dungeonclear", recommended);
         // Details! is the default damage meter, so Skada is not — same rule as the guides
         // below. Both read the same combat log and running two meters at once is duplicated
         // work for one answer. Skada stays in the catalog.
@@ -567,6 +575,34 @@ public class OneClickInstallTests
         return settings.SelectedAddonIds is { } ids
             ? entries.Where(e => ids.Contains(e.Id, StringComparer.Ordinal)).ToList()
             : entries.Where(e => e.Recommended).ToList();
+    }
+}
+
+public class ShippedDefaultsTests
+{
+    [Fact]
+    public void A_fresh_install_has_a_realm_and_a_client_to_fetch()
+    {
+        // Both of these were once deliberately blank — 127.0.0.1 for the realm, an empty id for
+        // the Drive file — on the grounds that neither belonged in the repository. They are set
+        // now so INSTALL EVERYTHING works on a first run with nothing typed in, and pinned here
+        // because a later tidy-up that "restores" either would break exactly that, quietly, with
+        // every test still green.
+        var settings = new AppSettings();
+
+        Assert.Equal("209.25.140.23:1170", settings.ServerAddress);
+        Assert.Equal("171vDSVws4R50xc6JGpoputrkHMAdZ7Kx", settings.DriveFileId);
+    }
+
+    [Fact]
+    public void The_shipped_realm_survives_being_written_to_a_realmlist()
+    {
+        // The port is the part that gets lost: a client written "set realmlist <ip>" with no port
+        // falls back to 3724 and silently never connects.
+        Assert.Equal(
+            "209.25.140.23:1170",
+            RealmlistService.Normalise(new AppSettings().ServerAddress)
+        );
     }
 }
 

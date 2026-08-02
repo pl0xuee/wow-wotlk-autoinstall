@@ -2,6 +2,25 @@
 
 ## v0.1.10
 
+- **A fresh install needs nothing typed in.** The realm now defaults to `209.25.140.23:1170`
+  rather than `127.0.0.1`, and the build ships the Google Drive id of the client zip rather than
+  leaving it blank, so the first run is one press of INSTALL EVERYTHING. Both boxes still take
+  anything else — the Install and Settings pages are unchanged apart from their starting values.
+- **Both of those put something real into a public repository**, which is the price of the line
+  above. The realm address names a reachable server, and the Drive id is one share link handed to
+  every copy of the app — Google's download quota is per file, so that daily allowance is now
+  shared between all of them rather than one each. When it runs out, Drive answers with an HTML
+  page and a 200; the downloader still catches that and says so, and the Zip-on-disk source is
+  the way through.
+- **DungeonClear added to the catalog**
+  ([jrad7/mod-dungeon-clear-addon](https://github.com/jrad7/mod-dungeon-clear-addon)), and ticked
+  by default in the one-click install. It is the in-game front end for the `mod-dungeon-clear`
+  server module: On, Off, Skip and Pause for a playerbots tank bot clearing a dungeon on its own,
+  a live status line for what the tank is doing, and a Go button on each boss. It needs that
+  module on the server and a tank bot in the party — untick it if your realm doesn't run it. The
+  repo holds the addon's files at its root rather than in a `DungeonClear/` folder, which would
+  install under the wrong folder name by hand; the installer names the folder from the `.toc`, so
+  it lands as `Interface/AddOns/DungeonClear` and the client loads it.
 - **Details! Damage Meter added to the catalog**
   ([Kowson/Details-Damage-Meter-for-3.3.5a](https://github.com/Kowson/Details-Damage-Meter-for-3.3.5a)),
   and it is now the damage meter the one-click install ticks by default. It installs ten folders

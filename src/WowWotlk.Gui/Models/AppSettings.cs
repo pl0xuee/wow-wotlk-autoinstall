@@ -21,8 +21,11 @@ public class AppSettings
     public string InstallDir { get; set; } = DefaultInstallDir;
     public string DownloadDir { get; set; } = DefaultDownloadDir;
 
-    /// <summary>Realmlist the client is pointed at. A local AzerothCore/TrinityCore box is 127.0.0.1.</summary>
-    public string ServerAddress { get; set; } = "127.0.0.1";
+    /// <summary>
+    /// Realmlist the client is pointed at. Use 127.0.0.1 for an AzerothCore/TrinityCore box on
+    /// this machine, or the LAN address of the one running it.
+    /// </summary>
+    public string ServerAddress { get; set; } = DefaultServerAddress;
 
     public ClientSource ClientSource { get; set; } = ClientSource.GoogleDrive;
 
@@ -33,11 +36,8 @@ public class AppSettings
     public string? ExistingClientPath { get; set; }
 
     /// <summary>
-    /// Google Drive file id of the client zip.
-    ///
-    /// Deliberately empty in the shipped build. Nobody else's client belongs in this repo, and
-    /// a shared public link burns one daily download quota between everyone who finds it — so
-    /// the id lives in the user's own settings.json, pasted in once on the Settings page.
+    /// Google Drive file id of the client zip. Replaced on the Settings page to install from a
+    /// different upload — or when this one is re-uploaded, which mints a new id.
     /// </summary>
     public string DriveFileId { get; set; } = DefaultDriveFileId;
 
@@ -87,7 +87,24 @@ public class AppSettings
     /// </summary>
     public string? ClientRoot { get; set; }
 
-    public const string DefaultDriveFileId = "";
+    /// <summary>
+    /// The realm a fresh install points at, so the one-click path works with nothing typed in.
+    ///
+    /// This is a real address in a public repository, which is the deliberate price of that: the
+    /// server it names is reachable by anyone who reads this file or runs a build of the app.
+    /// </summary>
+    public const string DefaultServerAddress = "209.25.140.23:1170";
+
+    /// <summary>
+    /// The client zip a fresh install downloads, for the same reason the realm is set above —
+    /// nothing to paste in before the first run.
+    ///
+    /// It is one public share link shipped to every copy of the app, and Google's download quota
+    /// is per file, so that daily allowance is shared between all of them rather than one each.
+    /// When it runs out the downloader says so (Drive answers with an HTML page and a 200) and
+    /// the way through is the Zip-on-disk source.
+    /// </summary>
+    public const string DefaultDriveFileId = "171vDSVws4R50xc6JGpoputrkHMAdZ7Kx";
 
     /// <summary>
     /// Size of a stock 3.3.5a client zip, as a starting point. Wrong for any other upload, so
